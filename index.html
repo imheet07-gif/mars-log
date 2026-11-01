@@ -181,6 +181,9 @@ li.item.selected{background:var(--paper);border-radius:14px;box-shadow:inset 0 0
 .stamp:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
 .moments{display:flex;gap:6px;flex-wrap:wrap}
 .moments:empty{display:none}
+.nudge{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.nudge[hidden]{display:none}
+.nudge button{font:inherit;font-size:13px;font-weight:700;border:2px solid var(--ink);background:var(--page);color:var(--ink);border-radius:999px;padding:3px 10px;cursor:pointer;font-variant-numeric:tabular-nums}
 .moments button{font:inherit;font-size:13px;font-weight:700;border:2px solid var(--ink);background:var(--page);color:var(--ink);border-radius:999px;padding:3px 10px;cursor:pointer;font-variant-numeric:tabular-nums}
 /* ---------- Systems & auth ---------- */
 .systems{margin-top:44px}
@@ -283,6 +286,7 @@ dialog input{display:block;width:100%;margin-top:4px;font:inherit;font-size:16px
      <a class="go" id="deskYT" target="_blank" rel="noopener" hidden>YouTube app ↗</a>
      <button type="button" class="desk-done" id="deskDone" aria-pressed="false">☆ Mark done</button>
    </div>
+   <div class="nudge" id="nudge" hidden><span>≈ Estimated from the YouTube app.</span><button type="button" data-d="-10">−10s</button><button type="button" data-d="10">+10s</button><button type="button" id="nudgeOk">✓</button></div>
    <textarea class="desk-notes" id="deskNotes" placeholder="What clicked? What’s still fuzzy?"></textarea>
    <div class="moments" id="moments" aria-label="Saved moments"></div>
    <div class="desk-nav"><button type="button" id="deskPrev">‹ Previous</button><button type="button" class="remove" id="deskRemove" hidden>Remove item</button><button type="button" id="deskNext">Next ›</button></div>
@@ -467,6 +471,7 @@ function openDesk(id, focus){
     if (f.item.url){ go.hidden = false; go.href = f.item.url; } else go.hidden = true;
   }
   syncDeskDone();
+  $("#nudge").hidden = true; lastStamp = null;
   deskNotes.value = state.notes[id] || "";
   renderMoments();
   deskNotes.setAttribute("aria-label", "Notes on " + f.item.title);
@@ -592,7 +597,8 @@ async function showVideo(yt){
     const vars = { playsinline:1, rel:0 };
     if (location.origin && location.origin.startsWith("http")) vars.origin = location.origin;
     if (yt.list){ vars.listType = "playlist"; vars.list = yt.list; }
-    player = new YT.Player("player", { width:"100%", height:"100%", videoId: yt.v, playerVars: vars });
+    player = new YT.Player("player", { width:"100%", height:"100%", videoId: yt.v, playerVars: vars,
+      events: { onStateChange: e => { if (e.data === 1) clearHandoff(); } } });
   } else if (player.cueVideoById){
     if (yt.list) player.cuePlaylist({ listType:"playlist", list: yt.list, index:0 });
     else player.cueVideoById(yt.v);
@@ -601,7 +607,7 @@ async function showVideo(yt){
 function pausePlayer(){ try { if (player && player.pauseVideo) player.pauseVideo(); } catch(e){} }
 // Hand off to the YouTube app (where Premium applies) at the current video and time
 function updateYTLink(){
-  if (!current) return;
+  if (!current) return null;
   let v = current.v, t = 0, idx = -1;
   try {
     if (player && player.getVideoData){
@@ -614,28 +620,63 @@ function updateYTLink(){
   if (current.list){ u.searchParams.set("list", current.list); if (idx >= 0) u.searchParams.set("index", idx + 1); }
   if (t > 0) u.searchParams.set("t", t + "s");
   $("#deskYT").href = u.href;
+  return { t, idx };
 }
+// Remember where playback left for the app, so ⏱ can estimate the time on return
+const HO = "mars-handoff", HO_MAX = 4*3600*1000;
+function loadHandoff(){ try { const h = JSON.parse(localStorage.getItem(HO) || "null"); return h && Date.now() - h.at < HO_MAX ? h : null; } catch(e){ return null; } }
+function saveHandoff(h){ try { localStorage.setItem(HO, JSON.stringify(h)); } catch(e){} }
+function clearHandoff(){ try { localStorage.removeItem(HO); } catch(e){} }
 $("#deskYT").addEventListener("pointerdown", updateYTLink);
-$("#deskYT").addEventListener("click", () => { updateYTLink(); pausePlayer(); });
+$("#deskYT").addEventListener("click", () => {
+  const pos = updateYTLink(); pausePlayer();
+  if (pos) saveHandoff({ id: selectedId, t: pos.t, idx: pos.idx, at: Date.now() });
+});
 const fmt = t => { const h = Math.floor(t/3600), m = Math.floor(t%3600/60), s = t%60; return h ? `${h}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}` : `${m}:${String(s).padStart(2,"0")}`; };
+let lastStamp = null;
+const stampTag = (t, ch) => ch ? `[Ch ${ch} ${fmt(t)}]` : `[${fmt(t)}]`;
 $("#deskStamp").addEventListener("click", () => {
-  if (!player || !player.getCurrentTime) { toast("Start the video first"); return; }
-  const t = Math.floor(player.getCurrentTime());
-  let idx = -1; try { if (current && current.list) idx = player.getPlaylistIndex(); } catch(e){}
-  const tag = idx >= 0 ? `[Ch ${idx+1} ${fmt(t)}] ` : `[${fmt(t)}] `;
+  const ho = loadHandoff();
+  let playing = false; try { playing = !!player && player.getPlayerState() === 1; } catch(e){}
+  let t, ch = null, est = false;
+  if (ho && ho.id === selectedId && !playing){
+    // watching in the YouTube app: start time plus time away
+    t = ho.t + Math.floor((Date.now() - ho.at) / 1000); ch = ho.idx >= 0 ? ho.idx + 1 : null; est = true;
+  } else {
+    if (!player || !player.getCurrentTime) { toast("Start the video first"); return; }
+    t = Math.floor(player.getCurrentTime());
+    try { if (current && current.list) ch = player.getPlaylistIndex() + 1 || null; } catch(e){}
+  }
+  const tag = stampTag(t, ch);
   const ta = deskNotes, s = ta.selectionStart ?? ta.value.length, e = ta.selectionEnd ?? s;
   const pre = ta.value.slice(0, s), lead = pre && !pre.endsWith("\n") ? "\n" : "";
-  ta.value = pre + lead + tag + ta.value.slice(e);
-  const pos = (pre + lead + tag).length; ta.focus(); ta.setSelectionRange(pos, pos);
+  ta.value = pre + lead + tag + " " + ta.value.slice(e);
+  const pos = (pre + lead + tag).length + 1; ta.focus(); ta.setSelectionRange(pos, pos);
+  lastStamp = { id: selectedId, start: (pre + lead).length, tag, t, ch };
+  $("#nudge").hidden = !est;
   ta.dispatchEvent(new Event("input"));
 });
-const STAMP_RE = /\[(?:Ch (\d+) )?(\d+):(\d{2})(?::(\d{2}))?\]/g;
+$("#nudge").addEventListener("click", e => {
+  const d = +e.target.dataset.d;
+  if (e.target.id === "nudgeOk" || !lastStamp || lastStamp.id !== selectedId
+      || deskNotes.value.substr(lastStamp.start, lastStamp.tag.length) !== lastStamp.tag){ $("#nudge").hidden = true; return; }
+  if (!d) return;
+  const t = Math.max(0, lastStamp.t + d), tag = stampTag(t, lastStamp.ch), v = deskNotes.value;
+  deskNotes.value = v.slice(0, lastStamp.start) + tag + v.slice(lastStamp.start + lastStamp.tag.length);
+  const pos = lastStamp.start + tag.length + 1; deskNotes.setSelectionRange(pos, pos);
+  lastStamp.t = t; lastStamp.tag = tag;
+  const ho = loadHandoff(); if (ho && ho.id === selectedId){ ho.t += d; saveHandoff(ho); } // later estimates keep the correction
+  deskNotes.dispatchEvent(new Event("input"));
+});
+// [12:30] / [Ch 3 12:30] anywhere, or a bare 12:30 / ch3 12:30 at the start of a line
+const STAMP_RE = /\[(?:Ch (\d+) )?(\d+):(\d{2})(?::(\d{2}))?\]|^[ \t]*(?:ch\.?\s*(\d+)\s+)?(\d{1,2}):([0-5]\d)(?::([0-5]\d))?(?![\d:])/gim;
 function renderMoments(){
   const box = $("#moments"); box.textContent = "";
   if (!current) return;
   for (const m of deskNotes.value.matchAll(STAMP_RE)){
-    const ch = m[1] ? +m[1] : null;
-    const secs = m[4] ? (+m[2])*3600 + (+m[3])*60 + (+m[4]) : (+m[2])*60 + (+m[3]);
+    const g = m[2] !== undefined ? m.slice(1, 5) : m.slice(5, 9);
+    const ch = g[0] ? +g[0] : null;
+    const secs = g[3] ? (+g[1])*3600 + (+g[2])*60 + (+g[3]) : (+g[1])*60 + (+g[2]);
     const b = document.createElement("button"); b.type = "button";
     b.textContent = "▶ " + (ch ? `Ch ${ch} · ` : "") + fmt(secs);
     b.addEventListener("click", () => {
