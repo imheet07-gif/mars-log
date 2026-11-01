@@ -108,8 +108,8 @@ li.item.is-done .title{opacity:.55;text-decoration-line:line-through;text-decora
 .note-area{margin:12px 0 0 46px;display:none}
 li.item.open .note-area{display:block}
 textarea{width:100%;min-height:120px;resize:vertical;border:none;border-radius:4px;padding:6px 14px 10px 14px;
-  font-family:"Caveat","Bradley Hand",cursive;font-size:22px;line-height:30px;color:var(--ink);
-  background:var(--log) repeating-linear-gradient(transparent 0 29px,var(--logline) 29px 30px);background-attachment:local;
+  font-family:"Caveat","Bradley Hand",cursive;font-size:var(--nfs,22px);line-height:var(--nlh,30px);color:var(--ink);
+  background:var(--log) repeating-linear-gradient(transparent 0 calc(var(--nlh,30px) - 1px),var(--logline) calc(var(--nlh,30px) - 1px) var(--nlh,30px));background-attachment:local;
   box-shadow:3px 3px 0 var(--rule)}
 textarea::placeholder{color:var(--muted)}
 textarea:focus{outline:3px solid var(--sun);outline-offset:0}
@@ -194,7 +194,12 @@ li.item.selected{background:var(--paper);border-radius:14px;box-shadow:inset 0 0
   body.studying .desk-inner[hidden]{display:none}
   body.studying .desk-main{display:flex;flex-direction:column;gap:10px;min-height:0;overflow-y:auto}
   body.studying .desk-nav{margin-top:auto}
-  body.studying .desk-notes{height:100%;min-height:0}
+  body.studying .notes-pane{height:100%;min-height:0;position:relative}
+  body.studying .notes-pane .desk-notes,body.studying .ink-wrap{min-height:0}
+  body.studying .split-handle{display:block}
+  body.studying #wideNotes{display:inline-block}
+  /* dragged divider: notes take --nf of the width, video column never below 360px */
+  body.studying.split-custom .desk-inner{grid-template-columns:minmax(360px,1fr) minmax(300px,calc(var(--nf,.4) * 100%))}
   body.studying .back,body.studying .desk-top .list-btn{display:inline-block}
   body.studying .left{position:fixed;top:0;bottom:0;left:0;z-index:45;width:min(460px,88vw);overflow-y:auto;
     background:var(--page);padding:env(safe-area-inset-top,0px) 16px calc(40px + env(safe-area-inset-bottom,0px));
@@ -220,6 +225,29 @@ body.study-enter .left{transition:none !important}
 .nudge[hidden]{display:none}
 .nudge button{font:inherit;font-size:13px;font-weight:700;border:2px solid var(--ink);background:var(--page);color:var(--ink);border-radius:999px;padding:3px 10px;cursor:pointer;font-variant-numeric:tabular-nums}
 .moments button{font:inherit;font-size:13px;font-weight:700;border:2px solid var(--ink);background:var(--page);color:var(--ink);border-radius:999px;padding:3px 10px;cursor:pointer;font-variant-numeric:tabular-nums}
+/* ---------- Notes pane: text / ink ---------- */
+.notes-pane{display:flex;flex-direction:column;gap:6px;flex:1 0 auto}
+.notes-pane .desk-notes{flex:1;min-height:180px}
+.notes-bar{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.seg{display:inline-flex;border:2px solid var(--ink);border-radius:999px;overflow:hidden;flex:none}
+.seg button{font:inherit;font-size:13px;font-weight:800;border:0;background:var(--paper);color:var(--ink);padding:5px 12px;cursor:pointer;touch-action:manipulation}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--page)}
+.seg .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--pink);margin-left:5px;vertical-align:middle}
+.nb-group{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.nb-group[hidden]{display:none}
+.nb{font:inherit;font-size:13px;font-weight:800;min-width:34px;height:32px;padding:0 9px;border:2px solid var(--ink);border-radius:10px;background:var(--page);color:var(--ink);cursor:pointer;touch-action:manipulation}
+.nb[aria-pressed="true"]{background:var(--sun);color:#1D1B4F}
+.nb:disabled{opacity:.35;cursor:default}
+.sw{width:26px;height:26px;border-radius:50%;border:2px solid var(--paper);box-shadow:0 0 0 2px var(--rule);cursor:pointer;padding:0;touch-action:manipulation}
+.sw[aria-pressed="true"]{box-shadow:0 0 0 3px var(--sun)}
+.sw[data-color="0"]{background:var(--ink)} .sw[data-color="1"]{background:#E2477F} .sw[data-color="2"]{background:#1E9BB8} .sw[data-color="3"]{background:#D9482B}
+#wideNotes{display:none;margin-left:auto}
+.ink-wrap{flex:1;min-height:180px;overflow-y:auto;border-radius:4px;box-shadow:3px 3px 0 var(--rule);background:var(--log);overscroll-behavior:contain}
+.ink-wrap[hidden]{display:none}
+#inkCanvas{position:sticky;top:0;display:block;width:100%;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.split-handle{display:none;position:absolute;left:-20px;top:0;bottom:0;width:18px;cursor:col-resize;touch-action:none;z-index:2}
+.split-handle::after{content:"";position:absolute;left:6px;top:50%;width:6px;height:56px;margin-top:-28px;border-radius:3px;background:var(--rule)}
+.split-handle:hover::after,.split-handle.dragging::after,.split-handle:focus-visible::after{background:var(--ink)}
 /* ---------- Systems & auth ---------- */
 .systems{margin-top:44px}
 .systems h2{margin:0 0 10px;font-size:22px;font-weight:800}
@@ -327,7 +355,24 @@ dialog input{display:block;width:100%;margin-top:4px;font:inherit;font-size:16px
    <div class="moments" id="moments" aria-label="Saved moments"></div>
    <div class="desk-nav"><button type="button" id="deskPrev">‹ Previous</button><button type="button" class="remove" id="deskRemove" hidden>Remove item</button><button type="button" id="deskNext">Next ›</button></div>
    </div>
-   <textarea class="desk-notes" id="deskNotes" placeholder="What clicked? What’s still fuzzy?"></textarea>
+   <div class="notes-pane" id="notesPane">
+    <div class="split-handle" id="splitHandle" role="separator" aria-orientation="vertical" aria-label="Resize notes" tabindex="0"></div>
+    <div class="notes-bar">
+     <div class="seg" role="group" aria-label="Notes mode"><button type="button" data-mode="text" aria-pressed="true">Aa Text</button><button type="button" data-mode="ink" aria-pressed="false">✎ Ink</button></div>
+     <div class="nb-group" id="textSize"><button type="button" class="nb" id="fsDown" aria-label="Smaller text">A−</button><button type="button" class="nb" id="fsUp" aria-label="Bigger text">A+</button></div>
+     <div class="nb-group" id="inkHist" hidden><button type="button" class="nb" id="inkUndo" aria-label="Undo">↶</button><button type="button" class="nb" id="inkRedo" aria-label="Redo">↷</button></div>
+     <button type="button" class="nb" id="wideNotes" aria-pressed="false">⇔ Wide</button>
+    </div>
+    <div class="notes-bar nb-group" id="inkTools" hidden>
+     <button type="button" class="nb" data-tool="pen" aria-pressed="true">Pen</button>
+     <button type="button" class="nb" data-tool="hl" aria-pressed="false">Mark</button>
+     <button type="button" class="nb" data-tool="erase" aria-pressed="false">Erase</button>
+     <button type="button" class="sw" data-color="0" aria-label="Ink colour: dark" aria-pressed="true"></button><button type="button" class="sw" data-color="1" aria-label="Ink colour: pink" aria-pressed="false"></button><button type="button" class="sw" data-color="2" aria-label="Ink colour: teal" aria-pressed="false"></button><button type="button" class="sw" data-color="3" aria-label="Ink colour: red" aria-pressed="false"></button>
+     <button type="button" class="nb" id="inkClear">Clear</button>
+    </div>
+    <textarea class="desk-notes" id="deskNotes" placeholder="What clicked? What’s still fuzzy?"></textarea>
+    <div class="ink-wrap" id="inkWrap" hidden><canvas id="inkCanvas" aria-label="Handwritten notes"></canvas><div id="inkSpace"></div></div>
+   </div>
   </div>
  </aside>
 </div>
@@ -467,7 +512,7 @@ function renderItem(it, phase){
 }
 function setStudyBtn(btn, id){
   btn.textContent = "Study";
-  if ((state.notes[id]||"").trim()){ const d = document.createElement("span"); d.className = "dot"; d.title = "Has notes"; btn.append(d); }
+  if ((state.notes[id]||"").trim() || hasInk(id)){ const d = document.createElement("span"); d.className = "dot"; d.title = "Has notes"; btn.append(d); }
 }
 function findItem(id){
   for (const g of allItems()){ const i = g.items.findIndex(x => x.id === id); if (i >= 0) return { item:g.items[i], phase:g.phase, index:i, items:g.items }; }
@@ -526,6 +571,7 @@ function openDesk(id, focus){
   syncDeskDone();
   $("#nudge").hidden = true; lastStamp = null;
   deskNotes.value = state.notes[id] || "";
+  ink.undo = []; ink.redo = []; ink.live = null; inkWrap.scrollTop = 0; inkLayout(); syncModeUI();
   renderMoments();
   deskNotes.setAttribute("aria-label", "Notes on " + f.item.title);
   $("#deskRemove").hidden = !f.item.custom;
@@ -566,6 +612,7 @@ $("#deskRemove").addEventListener("click", () => {
   const f = findItem(selectedId); if (!f || !f.item.custom) return;
   state.custom[f.phase.id] = (state.custom[f.phase.id]||[]).filter(x => x.id !== f.item.id);
   delete state.done[f.item.id]; delete state.notes[f.item.id];
+  if (inkPages[f.item.id]){ inkPages[f.item.id] = { strokes:[], tags:[], updatedAt:0 }; saveInk(f.item.id); }
   selectedId = null; $("#deskInner").hidden = true; $("#deskEmpty").hidden = false;
   closeDesk(); queueSave(0); render(); updateProgress();
 });
@@ -725,6 +772,10 @@ $("#deskStamp").addEventListener("click", () => {
     t = Math.floor(player.getCurrentTime());
     try { if (current && current.list) ch = player.getPlaylistIndex() + 1 || null; } catch(e){}
   }
+  if (notesMode === "ink"){ // margin tag beside the last handwritten line
+    lastStamp = { id: selectedId, ink: addInkTag(t, ch) };
+    $("#nudge").hidden = !est; return;
+  }
   const tag = stampTag(t, ch);
   const ta = deskNotes, s = ta.selectionStart ?? ta.value.length, e = ta.selectionEnd ?? s;
   const pre = ta.value.slice(0, s), lead = pre && !pre.endsWith("\n") ? "\n" : "";
@@ -736,6 +787,14 @@ $("#deskStamp").addEventListener("click", () => {
 });
 $("#nudge").addEventListener("click", e => {
   const d = +e.target.dataset.d;
+  if (lastStamp && lastStamp.ink){
+    const tg = lastStamp.ink, p = inkPages[selectedId];
+    if (e.target.id === "nudgeOk" || lastStamp.id !== selectedId || !p || !p.tags.includes(tg)){ $("#nudge").hidden = true; return; }
+    if (!d) return;
+    tg.t = Math.max(0, tg.t + d); saveInk(selectedId); inkDraw(); renderMoments();
+    const ho = loadHandoff(); if (ho && ho.id === selectedId){ ho.t += d; saveHandoff(ho); }
+    return;
+  }
   if (e.target.id === "nudgeOk" || !lastStamp || lastStamp.id !== selectedId
       || deskNotes.value.substr(lastStamp.start, lastStamp.tag.length) !== lastStamp.tag){ $("#nudge").hidden = true; return; }
   if (!d) return;
@@ -756,16 +815,323 @@ function renderMoments(){
     const g = m[2] !== undefined ? m.slice(1, 5) : m.slice(5, 9);
     const ch = g[0] ? +g[0] : null;
     const secs = g[3] ? (+g[1])*3600 + (+g[2])*60 + (+g[3]) : (+g[1])*60 + (+g[2]);
-    const b = document.createElement("button"); b.type = "button";
-    b.textContent = "▶ " + (ch ? `Ch ${ch} · ` : "") + fmt(secs);
-    b.addEventListener("click", () => {
-      if (!player || !player.seekTo) return;
-      if (ch && current.list) player.loadPlaylist({ listType:"playlist", list: current.list, index: ch-1, startSeconds: secs });
-      else { player.seekTo(secs, true); player.playVideo(); }
-    });
-    box.append(b);
+    box.append(momentChip(ch, secs, ""));
   }
+  const p = inkPages[selectedId];
+  if (p) [...p.tags].sort((a, b) => a.y - b.y).forEach(tg => box.append(momentChip(tg.ch, tg.t, "✎ ")));
 }
+function momentChip(ch, secs, mark){
+  const b = document.createElement("button"); b.type = "button";
+  b.textContent = "▶ " + mark + (ch ? `Ch ${ch} · ` : "") + fmt(secs);
+  b.addEventListener("click", () => seekMoment(ch, secs));
+  return b;
+}
+function seekMoment(ch, secs){
+  if (!player || !player.seekTo) return;
+  if (ch && current && current.list) player.loadPlaylist({ listType:"playlist", list: current.list, index: ch-1, startSeconds: secs });
+  else { player.seekTo(secs, true); player.playVideo(); }
+}
+
+/* ---------- Ink notes (Apple Pencil) ---------- */
+// Pages use a 500-unit-wide coordinate space so writing scales with the panel on every device.
+const INK_W = 500, INK_LINE = 32, INK_TOP = 44, INK_MARGIN = 64, PEN_W = 2.6;
+const INK_HUES = [null, "#E2477F", "#1E9BB8", "#D9482B"]; // 0 = theme ink colour
+const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const prefGet = (k, d) => { try { return localStorage.getItem(k) ?? d; } catch(e){ return d; } };
+const prefSet = (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch(e){} };
+let inkPages = {}; // item id -> { strokes:[{k:"p"|"h", c, w, pts:[x,y,pressure,…]}], tags:[{y,t,ch}], updatedAt }
+let notesMode = prefGet("mars-notes-mode", "text");
+const ink = { tool:"pen", color:0, undo:[], redo:[], live:null, liveId:null, erasing:null, pan:null, k:1, inkColor:"#1D1B4F" };
+const inkWrap = $("#inkWrap"), inkCanvas = $("#inkCanvas"), inkSpace = $("#inkSpace"), ictx = inkCanvas.getContext("2d");
+const boxes = new WeakMap(), tagRects = new WeakMap();
+
+const hasInk = id => { const p = inkPages[id]; return !!(p && (p.strokes.length || p.tags.length)); };
+const page = id => inkPages[id] || (inkPages[id] = { strokes:[], tags:[], updatedAt:0 });
+const normPage = p => ({ strokes: Array.isArray(p && p.strokes) ? p.strokes : [], tags: Array.isArray(p && p.tags) ? p.tags : [], updatedAt: +(p && p.updatedAt) || 0 });
+
+// device storage: IndexedDB has room for drawings (localStorage tops out around 5MB)
+let idb = null;
+const inkLoaded = new Promise(res => {
+  try {
+    const r = indexedDB.open("mars-log", 1);
+    r.onupgradeneeded = () => r.result.createObjectStore("ink");
+    r.onsuccess = () => { idb = r.result; res(); };
+    r.onerror = () => res();
+  } catch(e){ res(); }
+}).then(() => new Promise(res => {
+  if (!idb) return res();
+  try {
+    const c = idb.transaction("ink").objectStore("ink").openCursor();
+    c.onsuccess = () => {
+      const cur = c.result; if (!cur) return res();
+      const loc = normPage(cur.value), mem = inkPages[cur.key];
+      if (!mem || loc.updatedAt >= mem.updatedAt) inkPages[cur.key] = loc;
+      cur.continue();
+    };
+    c.onerror = () => res();
+  } catch(e){ res(); }
+}));
+function idbPut(id, val){ if (!idb) return; try { idb.transaction("ink", "readwrite").objectStore("ink").put(val, id); } catch(e){} }
+function saveInk(id){
+  const p = page(id); p.updatedAt = Date.now(); idbPut(id, p); queueInkPush(id);
+  const b = document.querySelector(`li.item[data-id="${CSS.escape(id)}"] .note-btn`); if (b) setStudyBtn(b, id);
+  if (id === selectedId) syncModeUI();
+}
+function refreshDots(){ document.querySelectorAll("li.item").forEach(li => { const b = li.querySelector(".note-btn"); if (b) setStudyBtn(b, li.dataset.id); }); }
+
+function box(s){ // cached bounding box of a stroke, in page units
+  let b = boxes.get(s); if (b && b.n === s.pts.length) return b;
+  b = { x0:1e9, y0:1e9, x1:-1e9, y1:-1e9, n: s.pts.length };
+  for (let i = 0; i < s.pts.length; i += 3){ const x = s.pts[i], y = s.pts[i+1]; if (x < b.x0) b.x0 = x; if (x > b.x1) b.x1 = x; if (y < b.y0) b.y0 = y; if (y > b.y1) b.y1 = y; }
+  boxes.set(s, b); return b;
+}
+function inkLayout(){ // size the canvas to the visible panel and the scroll space to the page
+  if (inkWrap.hidden) return;
+  const w = inkWrap.clientWidth, h = inkWrap.clientHeight; if (!w || !h) return;
+  const dpr = window.devicePixelRatio || 1;
+  ink.k = w / INK_W;
+  if (inkCanvas.width !== Math.round(w*dpr) || inkCanvas.height !== Math.round(h*dpr)){
+    inkCanvas.width = Math.round(w*dpr); inkCanvas.height = Math.round(h*dpr); inkCanvas.style.height = h + "px";
+  }
+  const p = inkPages[selectedId]; let maxY = 0;
+  if (p){ p.strokes.forEach(s => { maxY = Math.max(maxY, box(s).y1); }); p.tags.forEach(t => { maxY = Math.max(maxY, t.y); }); }
+  inkSpace.style.height = Math.max(0, Math.max(maxY + 400, h / ink.k) * ink.k - h) + "px";
+  inkDraw();
+}
+let inkFrame = 0;
+const inkDrawSoon = () => { if (!inkFrame) inkFrame = requestAnimationFrame(() => { inkFrame = 0; inkDraw(); }); };
+function inkDraw(){
+  if (inkWrap.hidden || !inkCanvas.width) return;
+  const dpr = window.devicePixelRatio || 1, k = ink.k, oy = inkWrap.scrollTop, w = inkCanvas.width/dpr, h = inkCanvas.height/dpr;
+  ictx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ictx.globalAlpha = 1; ictx.fillStyle = cssVar("--log"); ictx.fillRect(0, 0, w, h);
+  ictx.strokeStyle = cssVar("--logline"); ictx.lineWidth = 1; ictx.beginPath();
+  for (let i = Math.max(0, Math.ceil((oy/k - INK_TOP) / INK_LINE)); ; i++){
+    const y = Math.round((INK_TOP + i*INK_LINE)*k - oy) + .5; if (y > h) break;
+    ictx.moveTo(0, y); ictx.lineTo(w, y);
+  }
+  ictx.stroke();
+  ictx.strokeStyle = "rgba(226,71,127,.45)"; ictx.beginPath(); ictx.moveTo(Math.round(INK_MARGIN*k) + .5, 0); ictx.lineTo(Math.round(INK_MARGIN*k) + .5, h); ictx.stroke();
+  ink.inkColor = cssVar("--ink");
+  const p = inkPages[selectedId]; if (!p) return;
+  const top = oy/k - 20, bot = (oy + h)/k + 20;
+  for (const pass of ["h", "p"]) for (const s of p.strokes){ // highlighter under pen
+    if (s.k !== pass) continue; const b = box(s); if (b.y1 < top || b.y0 > bot) continue; drawStroke(s, k, oy);
+  }
+  if (ink.live) drawStroke(ink.live, k, oy);
+  p.tags.forEach(t => drawTag(t, k, oy));
+}
+const strokeColor = s => s.c ? INK_HUES[s.c] : ink.inkColor;
+const penWidth = (s, i, k) => s.w * k * (.45 + .85 * s.pts[i*3+2]);
+function drawSeg(s, i, k, oy){ // smoothed segment from the midpoint before point i-1 to the midpoint after it
+  const P = s.pts, ax = P[(i-1)*3], ay = P[(i-1)*3+1], bx = P[i*3], by = P[i*3+1];
+  const sx = i === 1 ? ax : (P[(i-2)*3] + ax)/2, sy = i === 1 ? ay : (P[(i-2)*3+1] + ay)/2;
+  ictx.beginPath(); ictx.moveTo(sx*k, sy*k - oy); ictx.quadraticCurveTo(ax*k, ay*k - oy, (ax+bx)/2*k, (ay+by)/2*k - oy);
+  ictx.lineWidth = (penWidth(s, i-1, k) + penWidth(s, i, k)) / 2; ictx.stroke();
+}
+function drawStroke(s, k, oy){
+  const P = s.pts, n = P.length / 3; if (!n) return;
+  ictx.lineCap = "round"; ictx.lineJoin = "round";
+  if (s.k === "h"){
+    ictx.globalAlpha = .38; ictx.strokeStyle = "#FFB238"; ictx.lineWidth = 16*k; ictx.beginPath(); ictx.moveTo(P[0]*k, P[1]*k - oy);
+    for (let i = 1; i < n; i++) ictx.lineTo(P[i*3]*k, P[i*3+1]*k - oy);
+    if (n === 1) ictx.lineTo(P[0]*k + .1, P[1]*k - oy);
+    ictx.stroke(); ictx.globalAlpha = 1; return;
+  }
+  ictx.strokeStyle = ictx.fillStyle = strokeColor(s);
+  if (n === 1){ ictx.beginPath(); ictx.arc(P[0]*k, P[1]*k - oy, penWidth(s, 0, k)/2, 0, 7); ictx.fill(); return; }
+  for (let i = 1; i < n; i++) drawSeg(s, i, k, oy);
+  const lx = (P[(n-2)*3] + P[(n-1)*3])/2, ly = (P[(n-2)*3+1] + P[(n-1)*3+1])/2;
+  ictx.beginPath(); ictx.moveTo(lx*k, ly*k - oy); ictx.lineTo(P[(n-1)*3]*k, P[(n-1)*3+1]*k - oy); ictx.lineWidth = penWidth(s, n-1, k); ictx.stroke();
+}
+function drawTag(t, k, oy){
+  // at least 13px text / 24px tall on screen so it stays readable and tappable on small panels
+  const label = "▶ " + (t.ch ? `Ch ${t.ch} ` : "") + fmt(t.t), fs = Math.max(15, 13/k), ph = Math.max(26, 24/k);
+  ictx.font = `800 ${fs*k}px "Bricolage Grotesque", system-ui, sans-serif`;
+  const tw = ictx.measureText(label).width / k + 16, x = 3, y = t.y - ph/2;
+  tagRects.set(t, { x, y, w: tw, h: ph });
+  ictx.fillStyle = "#1E9BB8"; ictx.beginPath();
+  if (ictx.roundRect) ictx.roundRect(x*k, y*k - oy, tw*k, ph*k, ph*k/2); else ictx.rect(x*k, y*k - oy, tw*k, ph*k);
+  ictx.fill(); ictx.fillStyle = "#fff"; ictx.textBaseline = "middle"; ictx.fillText(label, (x+8)*k, t.y*k - oy);
+}
+function hitTag(pt){
+  const p = inkPages[selectedId]; if (!p) return null;
+  return p.tags.find(t => { const r = tagRects.get(t); return r && pt.x >= r.x && pt.x <= r.x + r.w && pt.y >= r.y - 4 && pt.y <= r.y + r.h + 4; }) || null;
+}
+function addInkTag(t, ch){
+  const p = page(selectedId), last = [...p.strokes].reverse().find(s => s.k === "p");
+  const ys = last ? last.pts[1] : inkWrap.scrollTop / ink.k + INK_TOP;
+  const line = Math.max(0, Math.ceil((ys - INK_TOP) / INK_LINE));
+  let y = INK_TOP + line*INK_LINE - INK_LINE/2;
+  while (p.tags.some(x => Math.abs(x.y - y) < 1)) y += INK_LINE;
+  pushUndo(p);
+  const tg = { y, t, ch }; p.tags.push(tg);
+  saveInk(selectedId); inkLayout(); renderMoments();
+  if (y*ink.k < inkWrap.scrollTop || y*ink.k > inkWrap.scrollTop + inkWrap.clientHeight) inkWrap.scrollTop = Math.max(0, y*ink.k - inkWrap.clientHeight/2);
+  return tg;
+}
+const snap = p => ({ strokes:[...p.strokes], tags:[...p.tags] });
+function pushUndo(p){ ink.undo.push(snap(p)); if (ink.undo.length > 100) ink.undo.shift(); ink.redo = []; syncUndoUI(); }
+function undoRedo(from, to){
+  if (!selectedId || !from.length) return;
+  const p = page(selectedId); to.push(snap(p)); Object.assign(p, from.pop());
+  saveInk(selectedId); inkLayout(); renderMoments(); syncUndoUI();
+}
+function syncUndoUI(){ $("#inkUndo").disabled = !ink.undo.length; $("#inkRedo").disabled = !ink.redo.length; }
+function segDist(px, py, ax, ay, bx, by){
+  const dx = bx - ax, dy = by - ay, l = dx*dx + dy*dy, u = l ? Math.max(0, Math.min(1, ((px-ax)*dx + (py-ay)*dy) / l)) : 0;
+  return Math.hypot(px - ax - u*dx, py - ay - u*dy);
+}
+function eraseAt(p, pt){ // stroke eraser: removes whole strokes (and tags) it touches
+  const R = 9, before = p.strokes.length + p.tags.length;
+  p.strokes = p.strokes.filter(s => {
+    const b = box(s), r = R + (s.k === "h" ? 8 : s.w);
+    if (pt.x < b.x0 - r || pt.x > b.x1 + r || pt.y < b.y0 - r || pt.y > b.y1 + r) return true;
+    const P = s.pts;
+    if (P.length === 3) return Math.hypot(pt.x - P[0], pt.y - P[1]) > r;
+    for (let i = 3; i < P.length; i += 3) if (segDist(pt.x, pt.y, P[i-3], P[i-2], P[i], P[i+1]) <= r) return false;
+    return true;
+  });
+  const hit = hitTag(pt); if (hit) p.tags = p.tags.filter(t => t !== hit);
+  return p.strokes.length + p.tags.length !== before;
+}
+function inkPt(e){
+  const r = inkCanvas.getBoundingClientRect();
+  return { x:(e.clientX - r.left) / ink.k, y:(e.clientY - r.top + inkWrap.scrollTop) / ink.k, p: e.pointerType === "pen" ? (e.pressure || .5) : .5 };
+}
+function addPoint(s, pt){
+  const P = s.pts, n = P.length;
+  if (n && (pt.x - P[n-3])**2 + (pt.y - P[n-2])**2 < .36) return false;
+  P.push(Math.round(pt.x*10)/10, Math.round(pt.y*10)/10, Math.round(pt.p*100)/100); return true;
+}
+const capture = (el, id) => { try { el.setPointerCapture(id); } catch(e){} };
+const evs = e => (e.getCoalescedEvents && e.getCoalescedEvents().length) ? e.getCoalescedEvents() : [e];
+inkCanvas.addEventListener("pointerdown", e => {
+  if (!selectedId) return;
+  if (e.pointerType === "touch"){ // fingers scroll; the Pencil writes (palm rejection)
+    if (ink.live || ink.erasing) return;
+    ink.pan = { id:e.pointerId, x:e.clientX, y:e.clientY, top:inkWrap.scrollTop, moved:false };
+    capture(inkCanvas, e.pointerId); return;
+  }
+  if (e.pointerType === "mouse" && e.button !== 0) return;
+  e.preventDefault();
+  const pt = inkPt(e), tag = ink.tool !== "erase" && hitTag(pt);
+  if (tag){ seekMoment(tag.ch, tag.t); return; }
+  capture(inkCanvas, e.pointerId);
+  const p = page(selectedId); pushUndo(p);
+  if (ink.tool === "erase"){ ink.erasing = { id:e.pointerId, changed:eraseAt(p, pt) }; if (ink.erasing.changed) inkDraw(); return; }
+  ink.live = { k: ink.tool === "hl" ? "h" : "p", c: ink.color, w: PEN_W, pts: [] }; ink.liveId = e.pointerId;
+  addPoint(ink.live, pt); inkDrawSoon();
+});
+inkCanvas.addEventListener("pointermove", e => {
+  if (ink.pan && e.pointerId === ink.pan.id){
+    const dy = e.clientY - ink.pan.y;
+    if (Math.abs(dy) > 6 || Math.abs(e.clientX - ink.pan.x) > 6) ink.pan.moved = true;
+    inkWrap.scrollTop = ink.pan.top - dy; return;
+  }
+  if (ink.erasing && e.pointerId === ink.erasing.id){
+    const p = page(selectedId); let ch = false;
+    for (const ev of evs(e)) if (eraseAt(p, inkPt(ev))) ch = true;
+    if (ch){ ink.erasing.changed = true; inkDraw(); } return;
+  }
+  if (!ink.live || e.pointerId !== ink.liveId) return;
+  const s = ink.live, k = ink.k, oy = inkWrap.scrollTop;
+  for (const ev of evs(e)){
+    if (!addPoint(s, inkPt(ev))) continue;
+    if (s.k === "p"){ ictx.lineCap = "round"; ictx.strokeStyle = strokeColor(s); drawSeg(s, s.pts.length/3 - 1, k, oy); }
+  }
+  if (s.k === "h") inkDrawSoon();
+});
+function inkUp(e){
+  if (ink.pan && e.pointerId === ink.pan.id){
+    if (!ink.pan.moved){ const tag = hitTag(inkPt(e)); if (tag) seekMoment(tag.ch, tag.t); }
+    ink.pan = null; return;
+  }
+  if (ink.erasing && e.pointerId === ink.erasing.id){
+    if (ink.erasing.changed){ saveInk(selectedId); renderMoments(); } else { ink.undo.pop(); syncUndoUI(); }
+    ink.erasing = null; return;
+  }
+  if (!ink.live || e.pointerId !== ink.liveId) return;
+  const s = ink.live; ink.live = null;
+  if (s.pts.length){ page(selectedId).strokes.push(s); saveInk(selectedId); inkLayout(); }
+  else { ink.undo.pop(); syncUndoUI(); }
+}
+inkCanvas.addEventListener("pointerup", inkUp);
+inkCanvas.addEventListener("pointercancel", inkUp);
+inkWrap.addEventListener("scroll", inkDrawSoon, { passive:true });
+new ResizeObserver(() => inkLayout()).observe(inkWrap);
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", inkDraw);
+
+// tools
+$("#inkUndo").addEventListener("click", () => undoRedo(ink.undo, ink.redo));
+$("#inkRedo").addEventListener("click", () => undoRedo(ink.redo, ink.undo));
+$("#inkTools").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  if (b.dataset.tool){ ink.tool = b.dataset.tool; }
+  else if (b.dataset.color){ ink.color = +b.dataset.color; if (ink.tool !== "pen") ink.tool = "pen"; }
+  else if (b.id === "inkClear"){
+    const p = inkPages[selectedId]; if (!p || !hasInk(selectedId)) return;
+    if (!confirm("Clear this ink page? You can undo it.")) return;
+    pushUndo(p); p.strokes = []; p.tags = []; saveInk(selectedId); inkLayout(); renderMoments(); return;
+  }
+  document.querySelectorAll("#inkTools [data-tool]").forEach(x => x.setAttribute("aria-pressed", String(x.dataset.tool === ink.tool)));
+  document.querySelectorAll("#inkTools [data-color]").forEach(x => x.setAttribute("aria-pressed", String(+x.dataset.color === ink.color)));
+});
+// text / ink switch
+function setNotesMode(m){ notesMode = m === "ink" ? "ink" : "text"; prefSet("mars-notes-mode", notesMode); syncModeUI(); inkLayout(); }
+function syncModeUI(){
+  const isInk = notesMode === "ink";
+  deskNotes.hidden = isInk; inkWrap.hidden = !isInk; $("#inkTools").hidden = !isInk; $("#inkHist").hidden = !isInk; $("#textSize").hidden = isInk;
+  document.querySelectorAll(".seg button").forEach(b => {
+    const m = b.dataset.mode, other = m === "ink" ? hasInk(selectedId) : !!(state.notes[selectedId] || "").trim();
+    b.setAttribute("aria-pressed", String(m === notesMode));
+    b.textContent = m === "ink" ? "✎ Ink" : "Aa Text";
+    if (other && m !== notesMode){ const d = document.createElement("span"); d.className = "dot"; d.title = "Has notes"; b.append(d); }
+  });
+  syncUndoUI();
+}
+document.querySelector(".seg").addEventListener("click", e => { const b = e.target.closest("button"); if (b) setNotesMode(b.dataset.mode); });
+deskNotes.addEventListener("input", () => { if (notesMode === "text") syncModeUI(); });
+
+/* ---------- Notes sizing: text size, divider, wide notes ---------- */
+let notesFs = Math.min(34, Math.max(16, +prefGet("mars-notes-fs", 22) || 22));
+function applyFs(){
+  deskNotes.style.setProperty("--nfs", notesFs + "px"); deskNotes.style.setProperty("--nlh", Math.round(notesFs * 1.36) + "px");
+  $("#fsDown").disabled = notesFs <= 16; $("#fsUp").disabled = notesFs >= 34;
+}
+$("#fsDown").addEventListener("click", () => { notesFs = Math.max(16, notesFs - 2); prefSet("mars-notes-fs", notesFs); applyFs(); });
+$("#fsUp").addEventListener("click", () => { notesFs = Math.min(34, notesFs + 2); prefSet("mars-notes-fs", notesFs); applyFs(); });
+const NF_MIN = .25, NF_MAX = .68, NF_WIDE = .62;
+function setSplit(nf, save){
+  const b = document.body;
+  if (nf == null){ b.classList.remove("split-custom"); b.style.removeProperty("--nf"); }
+  else { nf = Math.min(NF_MAX, Math.max(NF_MIN, nf)); b.classList.add("split-custom"); b.style.setProperty("--nf", nf.toFixed(3)); }
+  if (save) prefSet("mars-split", nf == null ? null : nf.toFixed(3));
+  $("#wideNotes").setAttribute("aria-pressed", String(nf != null && nf >= NF_WIDE - .005));
+}
+const splitNow = () => document.body.classList.contains("split-custom") ? +getComputedStyle(document.body).getPropertyValue("--nf") : null;
+let splitBeforeWide = null;
+$("#wideNotes").addEventListener("click", () => {
+  const cur = splitNow();
+  if (cur != null && cur >= NF_WIDE - .005) setSplit(splitBeforeWide, true);
+  else { splitBeforeWide = cur; setSplit(NF_WIDE, true); }
+});
+const handle = $("#splitHandle");
+handle.addEventListener("pointerdown", e => { e.preventDefault(); capture(handle, e.pointerId); handle.classList.add("dragging"); });
+handle.addEventListener("pointermove", e => {
+  if (!handle.classList.contains("dragging")) return;
+  const r = $("#deskInner").getBoundingClientRect(), pad = 18;
+  setSplit((r.right - pad - e.clientX - 11) / (r.width - 2*pad), false);
+});
+const endDrag = () => { if (!handle.classList.contains("dragging")) return; handle.classList.remove("dragging"); const nf = splitNow(); if (nf != null) prefSet("mars-split", nf.toFixed(3)); };
+handle.addEventListener("pointerup", endDrag); handle.addEventListener("pointercancel", endDrag);
+handle.addEventListener("dblclick", () => setSplit(null, true)); // back to the default split
+handle.addEventListener("keydown", e => {
+  if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+  e.preventDefault(); const r = $("#deskInner").getBoundingClientRect();
+  const cur = splitNow() ?? $("#notesPane").offsetWidth / (r.width - 36);
+  setSplit(cur + (e.key === "ArrowLeft" ? .03 : -.03), true);
+});
 
 /* ---------- Saving: device + Supabase sync ---------- */
 const LS = "mars-tracker-v1";
@@ -781,7 +1147,8 @@ function queueSave(delay){
   if (!uid) setStatus();
 }
 function setStatus(msg){
-  statusEl.textContent = msg || (uid ? "Synced ✓" : configured ? "Saved on this device. Sign in below to sync." : "Saved on this device.");
+  statusEl.textContent = (msg || (uid ? "Synced ✓" : configured ? "Saved on this device. Sign in below to sync." : "Saved on this device."))
+    + (uid && inkSyncMissing ? " Ink notes are saved on this device only for now." : "");
   const b = $("#syncBtn");
   b.textContent = uid ? "Syncing ✓ (account)" : "Sign in to sync";
   b.classList.toggle("on", !!uid);
@@ -797,8 +1164,41 @@ async function push(){
   else { dirty = false; setStatus("Synced ✓"); }
   if (pushAgain){ pushAgain = false; push(); }
 }
+// Ink syncs per item through its own table, so big drawings don't slow the main notes document
+let inkSyncMissing = false, inkTimer = null;
+const inkDirty = new Set();
+function queueInkPush(id){ inkDirty.add(id); clearTimeout(inkTimer); inkTimer = setTimeout(inkPush, 1500); }
+async function inkPush(){
+  if (!sb || !uid || !inkDirty.size) return;
+  const ids = [...inkDirty]; inkDirty.clear();
+  const rows = ids.map(id => ({ user_id: uid, item_id: id, data: page(id), updated_at: new Date(page(id).updatedAt || Date.now()).toISOString() }));
+  const { error } = await sb.from("tracker_ink").upsert(rows);
+  if (error){ ids.forEach(i => inkDirty.add(i)); if (!inkSyncMissing){ inkSyncMissing = true; setStatus(); } }
+  else if (inkSyncMissing){ inkSyncMissing = false; setStatus(); }
+}
+async function inkPull(){
+  if (!sb || !uid) return;
+  await inkLoaded;
+  const { data, error } = await sb.from("tracker_ink").select("item_id, updated_at");
+  if (error){ if (!inkSyncMissing){ inkSyncMissing = true; setStatus(); } return; }
+  if (inkSyncMissing){ inkSyncMissing = false; setStatus(); }
+  const remote = Object.fromEntries(data.map(r => [r.item_id, Date.parse(r.updated_at)]));
+  const want = data.filter(r => remote[r.item_id] > ((inkPages[r.item_id] || {}).updatedAt || 0) && !inkDirty.has(r.item_id)).map(r => r.item_id);
+  if (want.length){
+    const { data: rows, error: e2 } = await sb.from("tracker_ink").select("item_id, data, updated_at").in("item_id", want);
+    if (!e2){
+      rows.forEach(r => { const p = normPage(r.data); p.updatedAt = Date.parse(r.updated_at); inkPages[r.item_id] = p; idbPut(r.item_id, p); });
+      refreshDots();
+      if (want.includes(selectedId) && !ink.live){ ink.undo = []; ink.redo = []; inkLayout(); renderMoments(); syncModeUI(); }
+    }
+  }
+  for (const id in inkPages) if ((inkPages[id].updatedAt || 0) > (remote[id] || 0)) inkDirty.add(id); // never uploaded
+  if (inkDirty.size) inkPush();
+}
 async function pull(){
-  if (!sb || !uid || pushing) return;
+  if (!sb || !uid) return;
+  inkPull();
+  if (pushing) return;
   const { data, error } = await sb.from("tracker").select("data, updated_at").eq("user_id", uid).maybeSingle();
   if (error){ setStatus("Couldn’t reach sync. Saved on this device."); return; }
   const remoteT = data ? Date.parse(data.updated_at) : 0, localT = state.updatedAt || 0;
@@ -807,7 +1207,7 @@ async function pull(){
   else setStatus("Synced ✓");
 }
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") pull(); });
-window.addEventListener("online", () => { if (dirty) push(); else pull(); });
+window.addEventListener("online", () => { if (inkDirty.size) inkPush(); if (dirty) push(); else pull(); });
 
 $("#journal").addEventListener("input", e => { state.journal = e.target.value; queueSave(900); });
 
@@ -843,21 +1243,30 @@ $("#signOutBtn").addEventListener("click", async () => { await sb.auth.signOut()
 
 /* ---------- Backup ---------- */
 $("#exportBtn").addEventListener("click", () => {
-  const blob = new Blob([JSON.stringify(state, null, 2)], { type:"application/json" });
+  const inkOut = Object.fromEntries(Object.keys(inkPages).filter(hasInk).map(id => [id, inkPages[id]]));
+  const blob = new Blob([JSON.stringify({ ...state, ink: inkOut }, null, 2)], { type:"application/json" });
   const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
   a.download = `mars-log-${new Date().toISOString().slice(0,10)}.json`; document.body.append(a); a.click();
   setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
 });
 $("#importInput").addEventListener("change", async e => {
   const file = e.target.files[0]; if (!file) return;
-  try { const data = JSON.parse(await file.text()); if (!data || typeof data !== "object" || !data.done) throw 0; apply(data); queueSave(0); toast("Backup restored"); }
+  try {
+    const data = JSON.parse(await file.text()); if (!data || typeof data !== "object" || !data.done) throw 0;
+    if (data.ink && typeof data.ink === "object") for (const id in data.ink){ inkPages[id] = normPage(data.ink[id]); saveInk(id); }
+    apply(data); queueSave(0); toast("Backup restored");
+  }
   catch(err){ toast("That file isn’t a Mars log backup"); }
   e.target.value = "";
 });
 
 /* ---------- Boot ---------- */
+applyFs();
+{ const nf = parseFloat(prefGet("mars-split", "")); setSplit(isFinite(nf) ? nf : null, false); }
 apply(loadLocal());
+syncModeUI();
 setStatus();
+inkLoaded.then(() => { refreshDots(); if (selectedId){ inkLayout(); renderMoments(); syncModeUI(); } });
 if (sb){
   sb.auth.onAuthStateChange((event, session) => {
     const newUid = session ? session.user.id : null;
