@@ -170,6 +170,34 @@ li.item.selected{background:var(--paper);border-radius:14px;box-shadow:inset 0 0
   .desk-tip{display:none}
 }
 @media (prefers-reduced-motion: reduce){ .desk{transition:none} }
+/* desk-main only groups the video column in study mode; otherwise its children flow in the desk */
+.desk-main{display:contents}
+.moments,.desk-nav{order:2}
+.desk-top .list-btn{display:none}
+.list-scrim{display:none}
+.handoff-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;border:2px dashed var(--ink);border-radius:14px;padding:8px 12px;font-weight:700;font-size:14px}
+.handoff-bar[hidden]{display:none}
+.handoff-bar button{font:inherit;font-size:13px;font-weight:700;border:2px solid var(--ink);background:var(--page);color:var(--ink);border-radius:999px;padding:3px 10px;cursor:pointer}
+/* study mode (wide): video column left, notes right, mission list in a drawer */
+@media (min-width:1000px){
+  body.studying{overflow:hidden}
+  body.studying .desk{position:fixed;z-index:40;margin:0;height:auto;
+    top:calc(16px + env(safe-area-inset-top,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));left:16px;right:16px}
+  body.studying .desk-inner{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(320px,1fr);gap:22px;overflow:hidden}
+  body.studying .desk-inner[hidden]{display:none}
+  body.studying .desk-main{display:flex;flex-direction:column;gap:10px;min-height:0;overflow-y:auto}
+  body.studying .desk-nav{margin-top:auto}
+  body.studying .desk-notes{height:100%;min-height:0}
+  body.studying .back,body.studying .desk-top .list-btn{display:inline-block}
+  body.studying .left{position:fixed;top:0;bottom:0;left:0;z-index:45;width:min(460px,88vw);overflow-y:auto;
+    background:var(--page);padding:env(safe-area-inset-top,0px) 16px calc(40px + env(safe-area-inset-bottom,0px));
+    box-shadow:6px 0 0 var(--ink);transform:translateX(calc(-100% - 10px));visibility:hidden;
+    transition:transform .3s cubic-bezier(.3,.8,.2,1),visibility .3s}
+  body.studying.list-open .left{transform:none;visibility:visible}
+  body.studying.list-open .list-scrim{display:block;position:fixed;inset:0;z-index:44;background:rgba(20,18,58,.45)}
+}
+@media (prefers-reduced-motion: reduce){ body.studying .left{transition:none} }
+body.study-enter .left{transition:none !important}
 
 
 /* ---------- Player & moments ---------- */
@@ -206,7 +234,7 @@ dialog input{display:block;width:100%;margin-top:4px;font:inherit;font-size:16px
   clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);
   animation:spark .7s ease-out forwards}
 @keyframes spark{to{transform:translate(var(--dx),var(--dy)) rotate(200deg) scale(.4);opacity:0}}
-.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translate(-50%,140%);
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translate(-50%,calc(100% + 40px + env(safe-area-inset-bottom,0px)));
   background:var(--ink);color:var(--page);font-weight:800;padding:10px 18px;border-radius:999px;z-index:60;
   transition:transform .35s cubic-bezier(.3,.8,.2,1);white-space:nowrap}
 .toast.show{transform:translate(-50%,0)}
@@ -276,8 +304,10 @@ dialog input{display:block;width:100%;margin-top:4px;font:inherit;font-size:16px
  <aside class="desk" id="desk" aria-label="Study desk">
   <div class="desk-empty" id="deskEmpty"><b>Study desk</b><span>Tap <em>Study</em> on any item to open it here with your notes.</span></div>
   <div class="desk-inner" id="deskInner" hidden>
-   <div class="desk-top"><button type="button" class="back" id="deskBack">‹ Mission</button><span class="desk-stage" id="deskStage"></span></div>
+   <div class="desk-main">
+   <div class="desk-top"><button type="button" class="back" id="deskBack">‹ Mission</button><button type="button" class="back list-btn" id="deskList" aria-expanded="false">☰ List</button><span class="desk-stage" id="deskStage"></span></div>
    <div class="player-wrap" id="playerWrap" hidden><div id="player"></div></div>
+   <div class="handoff-bar" id="handoffBar" hidden><span>▶ Watching in the YouTube app</span><button type="button" id="showPlayer">Show player here</button></div>
    <h2 class="desk-title" id="deskTitle"></h2>
    <div class="meta" id="deskMeta"></div>
    <div class="desk-actions">
@@ -287,12 +317,14 @@ dialog input{display:block;width:100%;margin-top:4px;font:inherit;font-size:16px
      <button type="button" class="desk-done" id="deskDone" aria-pressed="false">☆ Mark done</button>
    </div>
    <div class="nudge" id="nudge" hidden><span>≈ Estimated from the YouTube app.</span><button type="button" data-d="-10">−10s</button><button type="button" data-d="10">+10s</button><button type="button" id="nudgeOk">✓</button></div>
-   <textarea class="desk-notes" id="deskNotes" placeholder="What clicked? What’s still fuzzy?"></textarea>
    <div class="moments" id="moments" aria-label="Saved moments"></div>
    <div class="desk-nav"><button type="button" id="deskPrev">‹ Previous</button><button type="button" class="remove" id="deskRemove" hidden>Remove item</button><button type="button" id="deskNext">Next ›</button></div>
+   </div>
+   <textarea class="desk-notes" id="deskNotes" placeholder="What clicked? What’s still fuzzy?"></textarea>
   </div>
  </aside>
 </div>
+<div class="list-scrim" id="listScrim"></div>
 <dialog id="authDlg" aria-labelledby="authTitle">
   <form method="dialog" id="authForm">
     <h2 id="authTitle">Sync across devices</h2>
@@ -447,7 +479,20 @@ function setDone(id, val, sourceEl){
 /* ---------- Study desk ---------- */
 let selectedId = null;
 const desk = $("#desk"), deskNotes = $("#deskNotes");
-const wide = matchMedia("(min-width:1000px)");
+const wide = matchMedia("(min-width:1000px)"), finePointer = matchMedia("(pointer:fine)");
+const studying = () => document.body.classList.contains("studying");
+function setStudying(on){
+  const b = document.body.classList;
+  if (on !== b.contains("studying")){ // switch layouts without the drawer visibly sliding away
+    b.add("study-enter"); requestAnimationFrame(() => requestAnimationFrame(() => b.remove("study-enter")));
+  }
+  b.toggle("studying", on); if (!on) toggleList(false);
+}
+function toggleList(on){
+  document.body.classList.toggle("list-open", on); $("#deskList").setAttribute("aria-expanded", String(on));
+  const li = on && selectedId && document.querySelector(`li.item[data-id="${CSS.escape(selectedId)}"]`);
+  if (li) li.scrollIntoView({ block:"center" });
+}
 function syncDeskDone(){
   const b = $("#deskDone"), on = !!state.done[selectedId];
   b.setAttribute("aria-pressed", String(on)); b.textContent = on ? "★ Done" : "☆ Mark done";
@@ -465,11 +510,12 @@ function openDesk(id, focus){
   meta.append(kind, document.createTextNode(f.item.meta || ""));
   const go = $("#deskGo"), yt = parseYT(f.item.url);
   current = yt;
-  if (yt){ go.hidden = true; $("#deskStamp").hidden = false; $("#deskYT").hidden = false; $("#playerWrap").hidden = false; updateYTLink(); showVideo(yt); }
+  if (yt){ go.hidden = true; $("#deskStamp").hidden = false; $("#deskYT").hidden = false; updateYTLink(); showVideo(yt); }
   else {
-    $("#deskStamp").hidden = true; $("#deskYT").hidden = true; $("#playerWrap").hidden = true; pausePlayer();
+    $("#deskStamp").hidden = true; $("#deskYT").hidden = true; pausePlayer();
     if (f.item.url){ go.hidden = false; go.href = f.item.url; } else go.hidden = true;
   }
+  syncHandoffView();
   syncDeskDone();
   $("#nudge").hidden = true; lastStamp = null;
   deskNotes.value = state.notes[id] || "";
@@ -479,16 +525,26 @@ function openDesk(id, focus){
   const flat = flatItems(), pos = flat.findIndex(x => x.item.id === id);
   $("#deskPrev").disabled = pos <= 0; $("#deskNext").disabled = pos >= flat.length - 1;
   if (!wide.matches){ desk.classList.add("open"); document.body.classList.add("desk-open"); }
-  if (focus && wide.matches) deskNotes.focus({ preventScroll:true });
+  else if (focus) setStudying(true);
+  toggleList(false);
+  // skip on touch so the on-screen keyboard doesn't cover the page; Pencil can write straight in
+  if (focus && wide.matches && finePointer.matches) deskNotes.focus({ preventScroll:true });
 }
 function closeDesk(){
-  pausePlayer();
+  if (!wide.matches) pausePlayer(); // wide overview keeps the player visible
+  setStudying(false);
   desk.classList.remove("open"); document.body.classList.remove("desk-open");
   const li = selectedId && document.querySelector(`li.item[data-id="${CSS.escape(selectedId)}"]`);
   if (li){ li.scrollIntoView({ block:"center" }); const b = li.querySelector(".note-btn"); if (b) b.focus({ preventScroll:true }); }
 }
 $("#deskBack").addEventListener("click", closeDesk);
-document.addEventListener("keydown", e => { if (e.key === "Escape" && desk.classList.contains("open")) closeDesk(); });
+document.addEventListener("keydown", e => {
+  if (e.key !== "Escape" || dlg.open) return;
+  if (document.body.classList.contains("list-open")) toggleList(false);
+  else if (studying() || desk.classList.contains("open")) closeDesk();
+});
+$("#deskList").addEventListener("click", () => toggleList(!document.body.classList.contains("list-open")));
+$("#listScrim").addEventListener("click", () => toggleList(false));
 $("#deskDone").addEventListener("click", e => setDone(selectedId, !state.done[selectedId], e.currentTarget));
 deskNotes.addEventListener("input", () => {
   if (!selectedId) return;
@@ -506,8 +562,17 @@ $("#deskRemove").addEventListener("click", () => {
   selectedId = null; $("#deskInner").hidden = true; $("#deskEmpty").hidden = false;
   closeDesk(); queueSave(0); render(); updateProgress();
 });
+// rotating the iPad carries study mode across: landscape split <-> portrait sheet
 wide.addEventListener("change", () => {
-  if (wide.matches){ desk.classList.remove("open"); document.body.classList.remove("desk-open"); if (!selectedId) pickDefault(); }
+  if (wide.matches){
+    const sheet = desk.classList.contains("open");
+    desk.classList.remove("open"); document.body.classList.remove("desk-open");
+    if (sheet) setStudying(true);
+    if (!selectedId) pickDefault();
+  } else if (studying()){
+    setStudying(false);
+    if (selectedId){ desk.classList.add("open"); document.body.classList.add("desk-open"); }
+  }
 });
 function pickDefault(){
   if (!wide.matches || selectedId) return;
@@ -598,7 +663,7 @@ async function showVideo(yt){
     if (location.origin && location.origin.startsWith("http")) vars.origin = location.origin;
     if (yt.list){ vars.listType = "playlist"; vars.list = yt.list; }
     player = new YT.Player("player", { width:"100%", height:"100%", videoId: yt.v, playerVars: vars,
-      events: { onStateChange: e => { if (e.data === 1) clearHandoff(); } } });
+      events: { onStateChange: e => { if (e.data === 1){ clearHandoff(); syncHandoffView(); } } } });
   } else if (player.cueVideoById){
     if (yt.list) player.cuePlaylist({ listType:"playlist", list: yt.list, index:0 });
     else player.cueVideoById(yt.v);
@@ -627,11 +692,17 @@ const HO = "mars-handoff", HO_MAX = 4*3600*1000;
 function loadHandoff(){ try { const h = JSON.parse(localStorage.getItem(HO) || "null"); return h && Date.now() - h.at < HO_MAX ? h : null; } catch(e){ return null; } }
 function saveHandoff(h){ try { localStorage.setItem(HO, JSON.stringify(h)); } catch(e){} }
 function clearHandoff(){ try { localStorage.removeItem(HO); } catch(e){} }
+// while this item plays in the YouTube app, swap the paused player for a slim bar so notes get the room
+function syncHandoffView(){
+  const ho = loadHandoff(), away = !!(current && ho && ho.id === selectedId);
+  $("#handoffBar").hidden = !away; $("#playerWrap").hidden = !current || away;
+}
 $("#deskYT").addEventListener("pointerdown", updateYTLink);
 $("#deskYT").addEventListener("click", () => {
   const pos = updateYTLink(); pausePlayer();
-  if (pos) saveHandoff({ id: selectedId, t: pos.t, idx: pos.idx, at: Date.now() });
+  if (pos){ saveHandoff({ id: selectedId, t: pos.t, idx: pos.idx, at: Date.now() }); syncHandoffView(); }
 });
+$("#showPlayer").addEventListener("click", () => { clearHandoff(); syncHandoffView(); });
 const fmt = t => { const h = Math.floor(t/3600), m = Math.floor(t%3600/60), s = t%60; return h ? `${h}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}` : `${m}:${String(s).padStart(2,"0")}`; };
 let lastStamp = null;
 const stampTag = (t, ch) => ch ? `[Ch ${ch} ${fmt(t)}]` : `[${fmt(t)}]`;
