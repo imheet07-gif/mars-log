@@ -183,7 +183,14 @@ li.item.selected{background:var(--paper);border-radius:14px;box-shadow:inset 0 0
   body.studying{overflow:hidden}
   body.studying .desk{position:fixed;z-index:40;margin:0;height:auto;
     top:calc(16px + env(safe-area-inset-top,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));left:16px;right:16px}
-  body.studying .desk-inner{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(320px,1fr);gap:22px;overflow:hidden}
+  /* video column grows until the 16:9 player fills the height (~300px of controls), leaving notes ~38% */
+  body.studying .desk-inner{display:grid;gap:22px;overflow:hidden;
+    grid-template-columns:minmax(0,min(62%,max(55%,calc((100vh - 300px) * 1.778)))) minmax(320px,1fr);
+    grid-template-columns:minmax(0,min(62%,max(55%,calc((100dvh - 300px) * 1.778)))) minmax(320px,1fr)}
+  body.studying .moments{display:flex;flex:1 1 auto;min-height:56px;align-content:flex-start;overflow-y:auto;
+    border:2px dashed var(--rule);border-radius:14px;padding:10px}
+  body.studying .moments:empty::before{content:"⏱ Your timestamps collect here. Tap one to jump back to that moment.";color:var(--muted);font-size:14px}
+  body.studying .moments[hidden]{display:none}
   body.studying .desk-inner[hidden]{display:none}
   body.studying .desk-main{display:flex;flex-direction:column;gap:10px;min-height:0;overflow-y:auto}
   body.studying .desk-nav{margin-top:auto}
@@ -208,7 +215,7 @@ body.study-enter .left{transition:none !important}
 .stamp[hidden]{display:none}
 .stamp:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
 .moments{display:flex;gap:6px;flex-wrap:wrap}
-.moments:empty{display:none}
+.moments:empty,.moments[hidden]{display:none}
 .nudge{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--muted)}
 .nudge[hidden]{display:none}
 .nudge button{font:inherit;font-size:13px;font-weight:700;border:2px solid var(--ink);background:var(--page);color:var(--ink);border-radius:999px;padding:3px 10px;cursor:pointer;font-variant-numeric:tabular-nums}
@@ -743,6 +750,7 @@ $("#nudge").addEventListener("click", e => {
 const STAMP_RE = /\[(?:Ch (\d+) )?(\d+):(\d{2})(?::(\d{2}))?\]|^[ \t]*(?:ch\.?\s*(\d+)\s+)?(\d{1,2}):([0-5]\d)(?::([0-5]\d))?(?![\d:])/gim;
 function renderMoments(){
   const box = $("#moments"); box.textContent = "";
+  box.hidden = !current;
   if (!current) return;
   for (const m of deskNotes.value.matchAll(STAMP_RE)){
     const g = m[2] !== undefined ? m.slice(1, 5) : m.slice(5, 9);
