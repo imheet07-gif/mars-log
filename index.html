@@ -280,6 +280,7 @@ dialog input{display:block;width:100%;margin-top:4px;font:inherit;font-size:16px
    <div class="desk-actions">
      <button type="button" class="stamp" id="deskStamp" hidden>⏱ Timestamp</button>
      <a class="go" id="deskGo" target="_blank" rel="noopener">Open ↗</a>
+     <a class="go" id="deskYT" target="_blank" rel="noopener" hidden>YouTube app ↗</a>
      <button type="button" class="desk-done" id="deskDone" aria-pressed="false">☆ Mark done</button>
    </div>
    <textarea class="desk-notes" id="deskNotes" placeholder="What clicked? What’s still fuzzy?"></textarea>
@@ -460,9 +461,9 @@ function openDesk(id, focus){
   meta.append(kind, document.createTextNode(f.item.meta || ""));
   const go = $("#deskGo"), yt = parseYT(f.item.url);
   current = yt;
-  if (yt){ go.hidden = true; $("#deskStamp").hidden = false; $("#playerWrap").hidden = false; showVideo(yt); }
+  if (yt){ go.hidden = true; $("#deskStamp").hidden = false; $("#deskYT").hidden = false; $("#playerWrap").hidden = false; updateYTLink(); showVideo(yt); }
   else {
-    $("#deskStamp").hidden = true; $("#playerWrap").hidden = true; pausePlayer();
+    $("#deskStamp").hidden = true; $("#deskYT").hidden = true; $("#playerWrap").hidden = true; pausePlayer();
     if (f.item.url){ go.hidden = false; go.href = f.item.url; } else go.hidden = true;
   }
   syncDeskDone();
@@ -598,6 +599,24 @@ async function showVideo(yt){
   }
 }
 function pausePlayer(){ try { if (player && player.pauseVideo) player.pauseVideo(); } catch(e){} }
+// Hand off to the YouTube app (where Premium applies) at the current video and time
+function updateYTLink(){
+  if (!current) return;
+  let v = current.v, t = 0, idx = -1;
+  try {
+    if (player && player.getVideoData){
+      const d = player.getVideoData(); if (d && d.video_id) v = d.video_id;
+      t = Math.floor(player.getCurrentTime() || 0);
+      if (current.list) idx = player.getPlaylistIndex();
+    }
+  } catch(e){}
+  const u = new URL("https://www.youtube.com/watch"); u.searchParams.set("v", v);
+  if (current.list){ u.searchParams.set("list", current.list); if (idx >= 0) u.searchParams.set("index", idx + 1); }
+  if (t > 0) u.searchParams.set("t", t + "s");
+  $("#deskYT").href = u.href;
+}
+$("#deskYT").addEventListener("pointerdown", updateYTLink);
+$("#deskYT").addEventListener("click", () => { updateYTLink(); pausePlayer(); });
 const fmt = t => { const h = Math.floor(t/3600), m = Math.floor(t%3600/60), s = t%60; return h ? `${h}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}` : `${m}:${String(s).padStart(2,"0")}`; };
 $("#deskStamp").addEventListener("click", () => {
   if (!player || !player.getCurrentTime) { toast("Start the video first"); return; }
