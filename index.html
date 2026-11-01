@@ -841,7 +841,18 @@ const prefGet = (k, d) => { try { return localStorage.getItem(k) ?? d; } catch(e
 const prefSet = (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch(e){} };
 let inkPages = {}; // item id -> { strokes:[{k:"p"|"h", c, w, pts:[x,y,pressure,…]}], tags:[{y,t,ch}], updatedAt }
 let notesMode = prefGet("mars-notes-mode", "text");
-const ink = { tool:"pen", color:0, undo:[], redo:[], live:null, liveId:null, erasing:null, pan:null, k:1, inkColor:"#1D1B4F" };
+const ink = { tool:"pen", color:0, undo:[], redo:[], live:null, liveId:null, erasing:null, pan:null, penUpAt:-1e9, k:1, inkColor:"#1D1B4F" };
+// ?debug=ink shows a live count of the input events iPadOS delivers to the ink page
+const inkDbgBox = /[?&]debug=ink\b/.test(location.search) ? Object.assign(document.createElement("pre"), {
+  style:"position:fixed;right:8px;bottom:8px;z-index:99;margin:0;padding:8px 10px;font:12px/1.35 ui-monospace,monospace;background:rgba(20,18,58,.88);color:#FFF6E0;border-radius:10px;pointer-events:none;max-width:60vw;white-space:pre-wrap"
+}) : null;
+const inkDbgCounts = {}, inkDbgLast = [];
+function inkDbg(ev){
+  if (!inkDbgBox) return;
+  inkDbgCounts[ev] = (inkDbgCounts[ev] || 0) + 1; inkDbgLast.push(ev); if (inkDbgLast.length > 8) inkDbgLast.shift();
+  if (!inkDbgBox.isConnected) document.body.append(inkDbgBox);
+  inkDbgBox.textContent = Object.entries(inkDbgCounts).map(([k, v]) => `${k} ${v}`).join("\n") + "\nlast: " + inkDbgLast.join(" › ");
+}
 const inkWrap = $("#inkWrap"), inkCanvas = $("#inkCanvas"), inkSpace = $("#inkSpace"), ictx = inkCanvas.getContext("2d");
 const boxes = new WeakMap(), tagRects = new WeakMap();
 
@@ -1006,15 +1017,24 @@ function addPoint(s, pt){
 }
 const capture = (el, id) => { try { el.setPointerCapture(id); } catch(e){} };
 const evs = e => (e.getCoalescedEvents && e.getCoalescedEvents().length) ? e.getCoalescedEvents() : [e];
+// iPadOS runs its own gestures (Scribble, double-tap zoom, the selection magnifier) on raw touches and can
+// swallow Pencil strokes before pointer events arrive. Cancelling touches here stops that; scrolling is
+// done by hand from pointer events below, so nothing is lost.
+["touchstart", "touchmove", "touchend"].forEach(t => inkCanvas.addEventListener(t, e => { if (e.cancelable) e.preventDefault(); inkDbg(t); }, { passive:false }));
+const PALM_GRACE = 450; // ms after a stroke during which a new touch is treated as a resting palm, not a scroll
 inkCanvas.addEventListener("pointerdown", e => {
+  inkDbg("down:" + e.pointerType);
   if (!selectedId) return;
   if (e.pointerType === "touch"){ // fingers scroll; the Pencil writes (palm rejection)
-    if (ink.live || ink.erasing) return;
+    if (ink.live || ink.erasing || performance.now() - ink.penUpAt < PALM_GRACE) return;
     ink.pan = { id:e.pointerId, x:e.clientX, y:e.clientY, top:inkWrap.scrollTop, moved:false };
     capture(inkCanvas, e.pointerId); return;
   }
   if (e.pointerType === "mouse" && e.button !== 0) return;
   e.preventDefault();
+  if (ink.pan){ inkWrap.scrollTop = ink.pan.top; ink.pan = null; } // a palm landed first: undo its scroll
+  if (ink.live) finishStroke(); // iOS swallowed the previous lift; keep that stroke rather than drop it
+  if (ink.erasing) finishErase();
   const pt = inkPt(e), tag = ink.tool !== "erase" && hitTag(pt);
   if (tag){ seekMoment(tag.ch, tag.t); return; }
   capture(inkCanvas, e.pointerId);
@@ -1042,19 +1062,23 @@ inkCanvas.addEventListener("pointermove", e => {
   }
   if (s.k === "h") inkDrawSoon();
 });
+function finishErase(){
+  if (ink.erasing.changed){ saveInk(selectedId); renderMoments(); } else { ink.undo.pop(); syncUndoUI(); }
+  ink.erasing = null; ink.penUpAt = performance.now();
+}
+function finishStroke(){
+  const s = ink.live; ink.live = null; ink.penUpAt = performance.now();
+  if (s.pts.length){ page(selectedId).strokes.push(s); saveInk(selectedId); inkLayout(); inkDbg("saved"); }
+  else { ink.undo.pop(); syncUndoUI(); }
+}
 function inkUp(e){
+  inkDbg(e.type + ":" + e.pointerType);
   if (ink.pan && e.pointerId === ink.pan.id){
-    if (!ink.pan.moved){ const tag = hitTag(inkPt(e)); if (tag) seekMoment(tag.ch, tag.t); }
+    if (!ink.pan.moved && e.type === "pointerup"){ const tag = hitTag(inkPt(e)); if (tag) seekMoment(tag.ch, tag.t); }
     ink.pan = null; return;
   }
-  if (ink.erasing && e.pointerId === ink.erasing.id){
-    if (ink.erasing.changed){ saveInk(selectedId); renderMoments(); } else { ink.undo.pop(); syncUndoUI(); }
-    ink.erasing = null; return;
-  }
-  if (!ink.live || e.pointerId !== ink.liveId) return;
-  const s = ink.live; ink.live = null;
-  if (s.pts.length){ page(selectedId).strokes.push(s); saveInk(selectedId); inkLayout(); }
-  else { ink.undo.pop(); syncUndoUI(); }
+  if (ink.erasing && e.pointerId === ink.erasing.id) return finishErase();
+  if (ink.live && e.pointerId === ink.liveId) finishStroke();
 }
 inkCanvas.addEventListener("pointerup", inkUp);
 inkCanvas.addEventListener("pointercancel", inkUp);
