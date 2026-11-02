@@ -282,6 +282,40 @@ mark.hl.flash{animation:hlflash 1.6s ease-out}
 .xcard blockquote .katex{font-size:1em}
 .xcard blockquote::before{content:"❝ ";color:var(--hlc);font-weight:800}
 .xcard textarea.xnote{display:block;min-height:0;height:52px;resize:none;--nfs:20px;--nlh:26px;box-shadow:none;padding:0 6px;border-radius:6px}
+/* ---------- Look up & glossary ---------- */
+.look-btn{margin-left:auto;flex:none}
+.look-dlg{width:min(640px,calc(100% - 24px));max-height:min(86vh,860px);padding:18px;display:flex;flex-direction:column;gap:12px}
+.look-dlg:not([open]){display:none}
+.look-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.look-head h2{margin:0}
+.look-search{display:flex;gap:8px}
+.look-search input{flex:1;min-width:0;font:inherit;font-size:17px;padding:10px 12px;border:2px solid var(--ink);border-radius:12px;background:var(--page);color:var(--ink)}
+.look-out{overflow-y:auto;min-height:80px;display:flex;flex-direction:column;gap:10px;overscroll-behavior:contain}
+.look-sec{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:6px 0 0}
+.look-hint{color:var(--muted);font-size:14px;margin:0}
+.look-card{border:2px solid var(--ink);border-radius:14px;padding:10px 12px;background:var(--paper);box-shadow:3px 3px 0 var(--rule)}
+.look-card h4{margin:0 0 4px;font-size:16px;font-weight:800}
+.look-card p{margin:0;font-size:15px;line-height:1.5}
+.look-card mark{background:rgba(255,200,40,.55);color:inherit;border-radius:3px;padding:0 1px}
+.look-card .look-desc{color:var(--muted);font-size:13px;margin-bottom:4px}
+.look-card img{float:right;width:96px;height:auto;margin:0 0 6px 10px;border-radius:10px;background:#fff}
+.look-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;clear:both}
+.look-actions button,.look-actions a{font:inherit;font-size:13px;font-weight:800;border:2px solid var(--ink);background:var(--page);color:var(--ink);border-radius:999px;padding:4px 11px;cursor:pointer;text-decoration:none;touch-action:manipulation}
+.look-actions button[disabled]{opacity:.55;cursor:default}
+.look-also{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:13px;color:var(--muted)}
+.look-also button{font:inherit;font-size:13px;font-weight:700;border:1.5px solid var(--rule);background:none;color:var(--ink);border-radius:999px;padding:2px 9px;cursor:pointer}
+.look-credit{font-size:12px;color:var(--muted);margin:0}
+.gloss-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:18px 0 8px}
+.gloss-head h3{margin:0;font-size:22px;font-weight:800}
+.gloss-list{display:flex;flex-direction:column;gap:8px}
+.gloss-item{border:2px solid var(--ink);border-radius:12px;padding:8px 12px;background:var(--paper)}
+.gloss-item b{font-size:16px}
+.gloss-item p{margin:2px 0 4px;font-size:14px;line-height:1.45;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;overflow:hidden;cursor:pointer}
+.gloss-item.open p{display:block}
+.gloss-src{display:flex;gap:8px;align-items:center;font-size:12px;font-weight:700;color:var(--muted)}
+.gloss-src a,.gloss-src button{font:inherit;color:var(--ink);background:none;border:0;padding:0;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.gloss-src .gdel{margin-left:auto;text-decoration:none;border:1.5px solid var(--rule);border-radius:999px;padding:0 7px}
+.reader-body mark.find{background:var(--sun);color:#1D1B4F;border-radius:3px}
 /* ---------- Notes pane: text / ink ---------- */
 .notes-pane{display:flex;flex-direction:column;gap:6px;flex:1 0 auto}
 .notes-pane .desk-notes{flex:1;min-height:180px}
@@ -383,6 +417,8 @@ dialog input{display:block;width:100%;margin-top:4px;font:inherit;font-size:16px
     <h2>Captain’s log</h2>
     <p>Your running glossary. Explain ideas in your own words as they click: delta-v, specific impulse, the rocket equation.</p>
     <textarea id="journal" aria-label="Captain’s log" placeholder="Delta-v is…"></textarea>
+    <div class="gloss-head"><h3>Glossary</h3><button type="button" class="pill" id="lookBtnLog">🔍 Look up</button></div>
+    <div class="gloss-list" id="glossLog"></div>
   </section>
   <section class="systems">
     <h2>Flight systems</h2>
@@ -397,7 +433,7 @@ dialog input{display:block;width:100%;margin-top:4px;font:inherit;font-size:16px
   <div class="desk-empty" id="deskEmpty"><b>Study desk</b><span>Tap <em>Study</em> on any item to open it here with your notes.</span></div>
   <div class="desk-inner" id="deskInner" hidden>
    <div class="desk-main">
-   <div class="desk-top"><button type="button" class="back" id="deskBack">‹ Mission</button><button type="button" class="back list-btn" id="deskList" aria-expanded="false">☰ List</button><span class="desk-stage" id="deskStage"></span></div>
+   <div class="desk-top"><button type="button" class="back" id="deskBack">‹ Mission</button><button type="button" class="back list-btn" id="deskList" aria-expanded="false">☰ List</button><span class="desk-stage" id="deskStage"></span><button type="button" class="nb look-btn" id="lookBtn" aria-label="Look up a term">🔍 Look up</button></div>
    <div class="player-wrap" id="playerWrap" hidden><div id="player"></div></div>
    <div class="reader" id="reader" hidden>
     <div class="reader-bar"><button type="button" class="nb" id="rdPrev" aria-label="Previous page">‹</button><select id="rdToc" aria-label="Page"></select><button type="button" class="nb" id="rdNext" aria-label="Next page">›</button><span class="rd-count" id="rdCount"></span></div>
@@ -440,6 +476,11 @@ dialog input{display:block;width:100%;margin-top:4px;font:inherit;font-size:16px
  </aside>
 </div>
 <div class="list-scrim" id="listScrim"></div>
+<dialog id="lookDlg" class="look-dlg" aria-labelledby="lookTitle">
+  <div class="look-head"><h2 id="lookTitle">🔍 Look up</h2><button type="button" class="pill ghost" id="lookClose">Close</button></div>
+  <form class="look-search" id="lookForm" role="search"><input type="search" id="lookQ" aria-label="Look up" placeholder="e.g. what is a vector quantity" autocomplete="off" autocapitalize="off" enterkeyhint="search"><button type="submit" class="pill">Search</button></form>
+  <div class="look-out" id="lookOut" aria-live="polite"></div>
+</dialog>
 <dialog id="authDlg" aria-labelledby="authTitle">
   <form method="dialog" id="authForm">
     <h2 id="authTitle">Sync across devices</h2>
@@ -467,7 +508,7 @@ const SUPABASE_KEY = "sb_publishable_Utkqo3oOYdnLDUn8K-XEYA_NBm8J4Fa";
 const PHASES = [
   { id:"p1", name:"Liftoff", intro:"Fall in love with it again. No maths yet, just intuition.",
     items:[
-      {id:"nasa", title:"NASA Beginner’s Guide to Rockets", kind:"Reading", url:"https://www1.grc.nasa.gov/beginners-guide-to-aeronautics/", reader:"reader/nasa.json", meta:"Start here. 11 short pages on thrust, Newton’s laws, engines and the rocket equation. Read them right here."},
+      {id:"nasa", title:"NASA Beginner’s Guide to Rockets", kind:"Reading", url:"https://www1.grc.nasa.gov/beginners-guide-to-aeronautics/", reader:"reader/nasa.json", meta:"Start here. 18 short pages: vectors, thrust, Newton’s laws, engines and the rocket equation. Read them right here."},
       {id:"sm", title:"What Kerbal Space Program teaches about rocket science", kind:"Video", url:"https://www.youtube.com/watch?v=ogC6ds81gek", meta:"Scott Manley. Gentle intuition for orbits and staging. Watch before you start the game below."},
       {id:"ea", title:"Is SpaceX’s Raptor the king of rocket engines?", kind:"Video", url:"https://www.youtube.com/watch?v=LbH1ZDImaI8", meta:"Everyday Astronaut. Watch after the two above: it assumes thrust, Isp and chamber pressure, then walks through every engine cycle. Long, worth it."},
       {id:"ksp", title:"Kerbal Space Program", kind:"Game", url:"https://www.kerbalspaceprogram.com/", meta:"Reach orbit, then the Mun. You’ll learn delta-v and staging by failing."},
@@ -503,7 +544,7 @@ const PATCH = {
 const RANKS = [[0,"Cadet"],[0.15,"Launch technician"],[0.35,"Flight engineer"],[0.6,"Mission specialist"],[0.85,"Commander"],[1,"First human on Mars"]];
 const CHEERS = ["Burn complete!","Nominal. Keep going.","Go for orbit!","Fuel loaded.","Houston is impressed.","Clean separation!"];
 
-let state = { done:{}, notes:{}, custom:{}, journal:"", read:{}, hl:{} };
+let state = { done:{}, notes:{}, custom:{}, journal:"", read:{}, hl:{}, glossary:[] };
 let saveTimer = null, writing = false, pendingWrite = false, backend = null;
 const $ = s => document.querySelector(s);
 const statusEl = $("#status");
@@ -663,7 +704,7 @@ function closeDesk(){
 }
 $("#deskBack").addEventListener("click", closeDesk);
 document.addEventListener("keydown", e => {
-  if (e.key !== "Escape" || dlg.open) return;
+  if (e.key !== "Escape" || dlg.open || lookDlg.open) return;
   if (document.body.classList.contains("list-open")) toggleList(false);
   else if (studying() || desk.classList.contains("open")) closeDesk();
 });
@@ -929,7 +970,7 @@ async function openReader(id, src){
   if (rdItem !== id || selectedId !== id) return;
   rdPages = data.pages; rdHome = data.home; rdSource = data.source;
   rdPages.forEach((p, i) => rdToc.append(new Option(`${i+1}. ${p.title}`, p.id)));
-  const saved = (state.read[id] || {}).page;
+  const saved = rdWant && rdWant.item === id ? rdWant.page : (state.read[id] || {}).page;
   showReaderPage(rdPages.some(p => p.id === saved) ? saved : rdPages[0].id, false);
   renderCards(); // page titles are known now
 }
@@ -948,7 +989,11 @@ function showReaderPage(pageId, scrollTop){
   $("#deskGo").href = p.url;
   if (scrollTop !== false) rdBody.scrollTop = 0;
   // highlights are anchored to the text with equations rendered, so paint them once maths is done
-  const ready = () => { if (rdPage !== p.id) return; rdReady = true; paintHighlights(); if (pendingFlash){ flashMark(pendingFlash); pendingFlash = null; } };
+  const ready = () => {
+    if (rdPage !== p.id) return; rdReady = true; paintHighlights();
+    if (pendingFlash){ flashMark(pendingFlash); pendingFlash = null; }
+    if (rdWant && rdWant.item === rdItem && rdWant.page === p.id){ findInPage(rdWant.find); rdWant = null; }
+  };
   if (/\\\(|\\\[/.test(p.html)) loadKatex().then(() => {
     if (rdPage === p.id) renderMathInElement(rdBody, { delimiters:[{ left:"\\(", right:"\\)", display:false }, { left:"\\[", right:"\\]", display:true }], throwOnError:false });
   }).catch(() => {}).finally(ready);
@@ -966,7 +1011,7 @@ rdBody.addEventListener("click", e => {
   const a = e.target.closest("[data-page]");
   if (a){ e.preventDefault(); showReaderPage(a.dataset.page); return; }
   const m = e.target.closest("mark.hl"); // tapping a highlight opens its card
-  if (m && getSelection().isCollapsed){ setNotesMode("cards"); flashCard(m.dataset.hl); }
+  if (m && m.dataset.hl !== "find" && getSelection().isCollapsed){ setNotesMode("cards"); flashCard(m.dataset.hl); }
 });
 rdToc.addEventListener("change", () => showReaderPage(rdToc.value));
 $("#rdPrev").addEventListener("click", () => { const i = rdPages.findIndex(p => p.id === rdPage); if (i > 0) showReaderPage(rdPages[i-1].id); });
@@ -1132,6 +1177,181 @@ function flashCard(id){
   cardsWrap.scrollTop += cr.top - wr.top - 8;
   c.classList.remove("flash"); void c.offsetWidth; c.classList.add("flash");
 }
+
+/* ---------- Look up: your readings first, then Wikipedia; saves to a glossary ---------- */
+const lookDlg = $("#lookDlg"), lookQ = $("#lookQ"), lookOut = $("#lookOut");
+let rdWant = null, lookTimer = 0, lookAbort = null, lookSeq = 0;
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" })[c]);
+const STOP = new Set("a an the of is are was were what who how why does do in on to and for with by as be it its this that".split(" "));
+// "what is a vector quantity?" -> "vector quantity"
+const lookTerm = q => q.trim().replace(/[?!.]+$/, "")
+  .replace(/^(what|who|how|why)\s+(is|are|was|were|does|do)\s+(an?\s+|the\s+)?/i, "")
+  .replace(/^(define|definition of|meaning of|explain|what's|whats)\s+(an?\s+|the\s+)?/i, "").trim() || q.trim();
+const stem = w => w.length > 3 ? w.replace(/(es|s)$/, "") : w;
+const pageTextCache = new WeakMap();
+function pageText(p){
+  let t = pageTextCache.get(p);
+  if (t == null){
+    // keep headings and blocks apart in the flattened text ("Weight — Weight is…", not "Weight Weight is…")
+    const doc = new DOMParser().parseFromString(p.html.replace(/<\/(h[2-4])>/gi, " —</$1>").replace(/<\/(p|li|td|th|figcaption)>/gi, " </$1>"), "text/html");
+    t = doc.body.textContent.replace(/\\\(.*?\\\)/gs, " ").replace(/\s+/g, " ").trim();
+    pageTextCache.set(p, t);
+  }
+  return t;
+}
+async function searchReadings(term){
+  const words = term.toLowerCase().split(/\W+/).filter(w => w && !STOP.has(w)).map(stem);
+  if (!words.length) return [];
+  const phrase = term.toLowerCase(), out = [];
+  for (const g of allItems()) for (const it of g.items){
+    if (!it.reader) continue;
+    let data; try { data = await loadReader(it.reader); } catch(e){ continue; }
+    data.pages.forEach(p => {
+      const text = pageText(p), low = text.toLowerCase(), title = p.title.toLowerCase();
+      if (!words.every(w => low.includes(w) || title.includes(w))) return;
+      const hits = low.split(phrase).length - 1;
+      const score = hits * 5 + (words.every(w => title.includes(w)) ? 12 : 0) + words.reduce((s, w) => s + Math.min(5, low.split(w).length - 1), 0);
+      // snippet around the phrase, or the first of the words
+      let at = low.indexOf(phrase), len = phrase.length;
+      if (at < 0){ at = low.indexOf(words[0]); len = words[0].length; }
+      out.push({ item: it, page: p, score, at, len, text });
+    });
+  }
+  return out.sort((a, b) => b.score - a.score).slice(0, 4);
+}
+function snippetHTML(r){
+  if (r.at < 0) return esc(r.text.slice(0, 220)) + "…";
+  const sentence = r.text.lastIndexOf(". ", r.at - 1); // start at the sentence if it begins close enough
+  const s = sentence >= 0 && r.at - sentence < 160 ? sentence + 2 : Math.max(0, r.at - 140);
+  const e = Math.min(r.text.length, r.at + r.len + 180);
+  return (s > 0 ? "…" : "") + esc(r.text.slice(s, r.at)) + "<mark>" + esc(r.text.slice(r.at, r.at + r.len)) + "</mark>" + esc(r.text.slice(r.at + r.len, e)) + (e < r.text.length ? "…" : "");
+}
+async function wikiCandidates(term, signal){
+  const u = "https://en.wikipedia.org/w/api.php?action=query&list=search&srlimit=5&srprop=&format=json&origin=*&srsearch=" + encodeURIComponent(term);
+  const j = await fetch(u, { signal }).then(r => r.json());
+  return ((j.query && j.query.search) || []).map(x => x.title);
+}
+async function wikiSummary(title, signal){
+  const j = await fetch("https://en.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(title.replace(/ /g, "_")), { signal }).then(r => r.ok ? r.json() : null);
+  return j && j.type !== "disambiguation" && j.extract ? j : null;
+}
+const glossHas = (term, srcTitle) => state.glossary.some(g => g.term.toLowerCase() === term.toLowerCase() && g.src.title === srcTitle);
+function saveGloss(entry, btn){
+  if (glossHas(entry.term, entry.src.title)) return;
+  state.glossary.unshift({ id:"g" + Date.now().toString(36), at:Date.now(), ...entry });
+  queueSave(400); renderGlossary();
+  if (btn){ btn.textContent = "★ Saved"; btn.disabled = true; }
+}
+function openLook(prefill){
+  if (!lookDlg.open) lookDlg.showModal();
+  if (prefill != null) lookQ.value = prefill;
+  runLook(); lookQ.focus(); lookQ.select();
+}
+async function runLook(){
+  const q = lookQ.value.trim(), seq = ++lookSeq;
+  if (lookAbort) lookAbort.abort();
+  lookOut.textContent = "";
+  if (!q){ renderGlossary(lookOut, true); return; }
+  const term = lookTerm(q);
+  // 1. your readings
+  const hits = await searchReadings(term); if (seq !== lookSeq) return;
+  const secR = document.createElement("div");
+  secR.innerHTML = `<p class="look-sec">In your reading</p>`;
+  if (!hits.length) secR.insertAdjacentHTML("beforeend", `<p class="look-hint">Not covered in your imported reading yet.</p>`);
+  hits.forEach(r => {
+    const c = document.createElement("div"); c.className = "look-card";
+    c.innerHTML = `<h4>${esc(r.page.title)}</h4><p>${snippetHTML(r)}</p><div class="look-actions"><button type="button" class="go-read">↩ Read this</button><button type="button" class="save">★ Save</button></div>`;
+    c.querySelector(".go-read").addEventListener("click", () => jumpToReading(r.item.id, r.page.id, r.at >= 0 ? r.text.slice(r.at, r.at + r.len) : ""));
+    const sv = c.querySelector(".save"), def = c.querySelector("p").textContent.replace(/^…|…$/g, "").trim();
+    if (glossHas(term, r.page.title)){ sv.textContent = "★ Saved"; sv.disabled = true; }
+    sv.addEventListener("click", () => saveGloss({ term: term[0].toUpperCase() + term.slice(1), text: def, src:{ kind:"read", title:r.page.title, item:r.item.id, page:r.page.id } }, sv));
+    secR.append(c);
+  });
+  lookOut.append(secR);
+  // 2. Wikipedia
+  const secW = document.createElement("div"); secW.innerHTML = `<p class="look-sec">Wikipedia</p><p class="look-hint">Searching…</p>`; lookOut.append(secW);
+  lookAbort = new AbortController(); const { signal } = lookAbort;
+  try {
+    const titles = await wikiCandidates(term, signal); if (seq !== lookSeq) return;
+    let shown = null, i = 0;
+    for (; i < titles.length && !shown; i++) shown = await wikiSummary(titles[i], signal);
+    if (seq !== lookSeq) return;
+    secW.querySelector(".look-hint").remove();
+    if (!shown){ secW.insertAdjacentHTML("beforeend", `<p class="look-hint">No Wikipedia article found. Try fewer words.</p>`); return; }
+    const showSummary = s => {
+      secW.querySelectorAll(".look-card,.look-also,.look-credit").forEach(x => x.remove());
+      const c = document.createElement("div"); c.className = "look-card";
+      const url = (s.content_urls && (s.content_urls.mobile || s.content_urls.desktop) || {}).page || "https://en.wikipedia.org/wiki/" + encodeURIComponent(s.title);
+      c.innerHTML = `${s.thumbnail ? `<img src="${esc(s.thumbnail.source)}" alt="">` : ""}<h4>${esc(s.title)}</h4>${s.description ? `<p class="look-desc">${esc(s.description)}</p>` : ""}<p>${esc(s.extract)}</p>
+        <div class="look-actions"><button type="button" class="save">★ Save to glossary</button><a target="_blank" rel="noopener">Read on Wikipedia ↗</a></div>`;
+      c.querySelector("a").href = url;
+      const sv = c.querySelector(".save");
+      if (glossHas(s.title, "Wikipedia")){ sv.textContent = "★ Saved"; sv.disabled = true; }
+      sv.addEventListener("click", () => saveGloss({ term: s.title, text: s.extract.slice(0, 1500), src:{ kind:"wiki", title:"Wikipedia", url } }, sv));
+      secW.append(c);
+      const others = titles.filter(t => t !== s.title).slice(0, 3);
+      if (others.length){
+        const also = document.createElement("div"); also.className = "look-also"; also.textContent = "Not it? ";
+        others.forEach(t => { const b = document.createElement("button"); b.type = "button"; b.textContent = t;
+          b.addEventListener("click", async () => { const s2 = await wikiSummary(t).catch(() => null); if (s2) showSummary(s2); else b.disabled = true; }); also.append(b); });
+        secW.append(also);
+      }
+      secW.insertAdjacentHTML("beforeend", `<p class="look-credit">Summary from Wikipedia (CC BY-SA). Your search is sent to Wikipedia.</p>`);
+    };
+    showSummary(shown);
+  } catch(e){
+    if (e.name === "AbortError" || seq !== lookSeq) return;
+    const h = secW.querySelector(".look-hint"); if (h) h.textContent = "Couldn’t reach Wikipedia. Check your connection.";
+  }
+}
+function jumpToReading(itemId, pageId, find){
+  lookDlg.close();
+  rdWant = { item:itemId, page:pageId, find };
+  if (selectedId !== itemId || (!studying() && wide.matches) || (!wide.matches && !desk.classList.contains("open"))) openDesk(itemId, true);
+  if (rdItem === itemId && rdPages.length){
+    if (rdPage === pageId && rdReady){ findInPage(find); rdWant = null; } else showReaderPage(pageId);
+  }
+}
+function findInPage(find){
+  const root = rdContent(); if (!root || !find) return;
+  const text = textNodes(root).map(n => n.data).join(""), at = text.toLowerCase().indexOf(find.toLowerCase()); if (at < 0) return;
+  wrapRange(root, at, at + find.length, { id:"find", c:0 });
+  const marks = root.querySelectorAll('mark[data-hl="find"]'); marks.forEach(m => m.classList.add("find"));
+  const mr = marks[0].getBoundingClientRect(), br = rdBody.getBoundingClientRect();
+  rdBody.scrollTop += mr.top - br.top - br.height / 3;
+  setTimeout(() => { root.querySelectorAll('mark[data-hl="find"]').forEach(m => m.replaceWith(...m.childNodes)); root.normalize(); }, 2600);
+}
+function renderGlossary(target, inLook){
+  const box = target || $("#glossLog"); box.textContent = "";
+  const list = state.glossary || [];
+  if (inLook) box.insertAdjacentHTML("beforeend", `<p class="look-sec">Your glossary (${list.length})</p>`);
+  if (!list.length){
+    box.insertAdjacentHTML("beforeend", `<p class="look-hint">${inLook ? "Type a word or question above. Tap ★ Save on an answer to keep it here." : "Terms you save from 🔍 Look up collect here."}</p>`);
+    return;
+  }
+  list.forEach(g => {
+    const el = document.createElement("div"); el.className = "gloss-item";
+    el.innerHTML = `<b></b><p></p><div class="gloss-src"><span>From</span><button type="button" class="gsrc"></button><button type="button" class="gdel" aria-label="Remove from glossary">×</button></div>`;
+    el.querySelector("b").textContent = g.term; el.querySelector("p").textContent = g.text;
+    el.querySelector("p").addEventListener("click", () => el.classList.toggle("open"));
+    const src = el.querySelector(".gsrc"); src.textContent = g.src.kind === "wiki" ? "Wikipedia ↗" : "NASA · " + g.src.title;
+    src.addEventListener("click", () => {
+      if (g.src.kind === "wiki") window.open(g.src.url, "_blank", "noopener");
+      else jumpToReading(g.src.item, g.src.page, g.text.split(/\s+/).slice(0, 6).join(" "));
+    });
+    el.querySelector(".gdel").addEventListener("click", () => {
+      if (!confirm(`Remove “${g.term}” from your glossary?`)) return;
+      state.glossary = state.glossary.filter(x => x !== g); queueSave(400); renderGlossary(); if (lookDlg.open && !lookQ.value.trim()) runLook();
+    });
+    box.append(el);
+  });
+}
+$("#lookBtn").addEventListener("click", () => openLook());
+$("#lookBtnLog").addEventListener("click", () => openLook());
+$("#lookClose").addEventListener("click", () => lookDlg.close());
+$("#lookForm").addEventListener("submit", e => { e.preventDefault(); clearTimeout(lookTimer); runLook(); lookQ.blur(); });
+lookQ.addEventListener("input", () => { clearTimeout(lookTimer); lookTimer = setTimeout(runLook, 500); });
+lookDlg.addEventListener("click", e => { if (e.target === lookDlg) lookDlg.close(); }); // tap outside to close
 
 /* ---------- Ink notes (Apple Pencil) ---------- */
 // Pages use a 500-unit-wide coordinate space so writing scales with the panel on every device.
@@ -1541,8 +1761,8 @@ window.addEventListener("online", () => { if (inkDirty.size) inkPush(); if (dirt
 $("#journal").addEventListener("input", e => { state.journal = e.target.value; queueSave(900); });
 
 function apply(data){
-  if (data && typeof data === "object") state = { done:data.done||{}, notes:data.notes||{}, custom:data.custom||{}, journal:data.journal||"", read:data.read||{}, hl:data.hl||{}, updatedAt:data.updatedAt||0 };
-  $("#journal").value = state.journal; render(); updateProgress();
+  if (data && typeof data === "object") state = { done:data.done||{}, notes:data.notes||{}, custom:data.custom||{}, journal:data.journal||"", read:data.read||{}, hl:data.hl||{}, glossary:Array.isArray(data.glossary) ? data.glossary : [], updatedAt:data.updatedAt||0 };
+  $("#journal").value = state.journal; render(); updateProgress(); renderGlossary();
   if (selectedId && findItem(selectedId)) openDeskQuiet(); else { selectedId = null; pickDefault(); }
 }
 function openDeskQuiet(){ const wasOpen = desk.classList.contains("open"); openDesk(selectedId, false); if (!wasOpen && !wide.matches){ desk.classList.remove("open"); document.body.classList.remove("desk-open"); pausePlayer(); } }
