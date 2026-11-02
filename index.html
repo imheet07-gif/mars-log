@@ -193,6 +193,7 @@ li.item.selected{background:var(--paper);border-radius:14px;box-shadow:inset 0 0
   body.studying .moments[hidden]{display:none}
   body.studying .desk-inner[hidden]{display:none}
   body.studying .desk-main{display:flex;flex-direction:column;gap:10px;min-height:0;overflow-y:auto}
+  body.studying .reader{flex:1 1 auto;height:auto;min-height:260px}
   body.studying .desk-nav{margin-top:auto}
   body.studying .notes-pane{height:100%;min-height:0;position:relative}
   body.studying .notes-pane .desk-notes,body.studying .ink-wrap{min-height:0}
@@ -225,6 +226,30 @@ body.study-enter .left{transition:none !important}
 .nudge[hidden]{display:none}
 .nudge button{font:inherit;font-size:13px;font-weight:700;border:2px solid var(--ink);background:var(--page);color:var(--ink);border-radius:999px;padding:3px 10px;cursor:pointer;font-variant-numeric:tabular-nums}
 .moments button{font:inherit;font-size:13px;font-weight:700;border:2px solid var(--ink);background:var(--page);color:var(--ink);border-radius:999px;padding:3px 10px;cursor:pointer;font-variant-numeric:tabular-nums}
+/* ---------- In-site reader ---------- */
+.reader{display:flex;flex-direction:column;flex:none;height:min(62vh,600px);border:3px solid var(--ink);border-radius:16px;background:var(--paper);overflow:hidden}
+.reader[hidden]{display:none}
+.reader-bar{display:flex;gap:6px;align-items:center;padding:8px 10px;border-bottom:2px solid var(--rule);flex:none}
+.reader-bar select{flex:1;min-width:0;font:inherit;font-size:14px;font-weight:700;height:32px;padding:0 8px;border:2px solid var(--ink);border-radius:10px;background:var(--page);color:var(--ink)}
+.rd-count{flex:none;font-size:12px;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
+.reader-body{flex:1;min-height:0;overflow-y:auto;padding:6px 20px 28px;font-size:17px;line-height:1.6;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.reader-body h1{font-size:26px;line-height:1.15;margin:14px 0 6px;font-weight:800;font-variation-settings:"opsz" 72,"wdth" 85}
+.reader-body h2{font-size:20px;line-height:1.2;margin:22px 0 6px;font-weight:800}
+.reader-body h3,.reader-body h4{font-size:17px;margin:18px 0 4px;font-weight:800}
+.reader-body p,.reader-body ul,.reader-body ol{margin:0 0 12px}
+.reader-body img{display:block;max-width:100%;height:auto;margin:8px auto;border-radius:10px;background:#fff;padding:6px}
+.reader-body figure{margin:12px 0}
+.reader-body figcaption{font-size:13px;color:var(--muted);text-align:center}
+.reader-body table{border-collapse:collapse;width:100%;font-size:15px;margin:0 0 12px}
+.reader-body td,.reader-body th{border:1px solid var(--rule);padding:6px 8px;vertical-align:top}
+.reader-body a{text-decoration-thickness:2px;text-underline-offset:3px;text-decoration-color:var(--rule)}
+.reader-body a[data-page]{color:var(--pink);text-decoration-color:var(--pink)}
+.reader-body .katex{font-size:1em}
+.reader-body .katex-display,.reader-body p:has(> .katex){overflow-x:auto;overflow-y:hidden}
+.rd-credit{margin-top:22px;padding-top:12px;border-top:2px dashed var(--rule);font-size:13px;color:var(--muted)}
+.rd-nav{display:flex;justify-content:space-between;gap:8px;margin-top:16px}
+.rd-nav button{font:inherit;font-weight:800;font-size:14px;border:2px solid var(--ink);background:var(--page);color:var(--ink);border-radius:999px;padding:6px 14px;cursor:pointer;max-width:48%;text-align:left}
+.rd-nav button:last-child{margin-left:auto;text-align:right}
 /* ---------- Notes pane: text / ink ---------- */
 .notes-pane{display:flex;flex-direction:column;gap:6px;flex:1 0 auto}
 .notes-pane .desk-notes{flex:1;min-height:180px}
@@ -342,6 +367,10 @@ dialog input{display:block;width:100%;margin-top:4px;font:inherit;font-size:16px
    <div class="desk-main">
    <div class="desk-top"><button type="button" class="back" id="deskBack">‹ Mission</button><button type="button" class="back list-btn" id="deskList" aria-expanded="false">☰ List</button><span class="desk-stage" id="deskStage"></span></div>
    <div class="player-wrap" id="playerWrap" hidden><div id="player"></div></div>
+   <div class="reader" id="reader" hidden>
+    <div class="reader-bar"><button type="button" class="nb" id="rdPrev" aria-label="Previous page">‹</button><select id="rdToc" aria-label="Page"></select><button type="button" class="nb" id="rdNext" aria-label="Next page">›</button><span class="rd-count" id="rdCount"></span></div>
+    <article class="reader-body" id="rdBody"></article>
+   </div>
    <div class="handoff-bar" id="handoffBar" hidden><span>▶ Watching in the YouTube app</span><button type="button" id="showPlayer">Show player here</button></div>
    <h2 class="desk-title" id="deskTitle"></h2>
    <div class="meta" id="deskMeta"></div>
@@ -404,7 +433,7 @@ const SUPABASE_KEY = "sb_publishable_Utkqo3oOYdnLDUn8K-XEYA_NBm8J4Fa";
 const PHASES = [
   { id:"p1", name:"Liftoff", intro:"Fall in love with it again. No maths yet, just intuition.",
     items:[
-      {id:"nasa", title:"NASA Beginner’s Guide to Rockets", kind:"Reading", url:"https://www.grc.nasa.gov/www/k-12/rocket/bgmr.html", meta:"Start here. Short pages on thrust, Newton’s laws and the rocket equation."},
+      {id:"nasa", title:"NASA Beginner’s Guide to Rockets", kind:"Reading", url:"https://www1.grc.nasa.gov/beginners-guide-to-aeronautics/", reader:"reader/nasa.json", meta:"Start here. 11 short pages on thrust, Newton’s laws, engines and the rocket equation. Read them right here."},
       {id:"sm", title:"What Kerbal Space Program teaches about rocket science", kind:"Video", url:"https://www.youtube.com/watch?v=ogC6ds81gek", meta:"Scott Manley. Gentle intuition for orbits and staging. Watch before you start the game below."},
       {id:"ea", title:"Is SpaceX’s Raptor the king of rocket engines?", kind:"Video", url:"https://www.youtube.com/watch?v=LbH1ZDImaI8", meta:"Everyday Astronaut. Watch after the two above: it assumes thrust, Isp and chamber pressure, then walks through every engine cycle. Long, worth it."},
       {id:"ksp", title:"Kerbal Space Program", kind:"Game", url:"https://www.kerbalspaceprogram.com/", meta:"Reach orbit, then the Mun. You’ll learn delta-v and staging by failing."},
@@ -440,7 +469,7 @@ const PATCH = {
 const RANKS = [[0,"Cadet"],[0.15,"Launch technician"],[0.35,"Flight engineer"],[0.6,"Mission specialist"],[0.85,"Commander"],[1,"First human on Mars"]];
 const CHEERS = ["Burn complete!","Nominal. Keep going.","Go for orbit!","Fuel loaded.","Houston is impressed.","Clean separation!"];
 
-let state = { done:{}, notes:{}, custom:{}, journal:"" };
+let state = { done:{}, notes:{}, custom:{}, journal:"", read:{} };
 let saveTimer = null, writing = false, pendingWrite = false, backend = null;
 const $ = s => document.querySelector(s);
 const statusEl = $("#status");
@@ -567,6 +596,9 @@ function openDesk(id, focus){
     $("#deskStamp").hidden = true; $("#deskYT").hidden = true; pausePlayer();
     if (f.item.url){ go.hidden = false; go.href = f.item.url; } else go.hidden = true;
   }
+  go.textContent = f.item.reader ? "Original ↗" : "Open ↗";
+  $("#reader").hidden = !f.item.reader;
+  if (f.item.reader) openReader(id, f.item.reader); else rdItem = null;
   syncHandoffView();
   syncDeskDone();
   $("#nudge").hidden = true; lastStamp = null;
@@ -831,6 +863,68 @@ function seekMoment(ch, secs){
   if (ch && current && current.list) player.loadPlaylist({ listType:"playlist", list: current.list, index: ch-1, startSeconds: secs });
   else { player.seekTo(secs, true); player.playVideo(); }
 }
+
+/* ---------- In-site reader (imported public-domain articles) ---------- */
+const readerData = {}; // src -> Promise of { source, home, pages:[{id,title,url,html}] }
+const rdBody = $("#rdBody"), rdToc = $("#rdToc");
+let rdItem = null, rdPages = [], rdPage = null, rdHome = "", rdSource = "";
+function loadReader(src){
+  return readerData[src] || (readerData[src] = fetch(src).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .catch(e => { delete readerData[src]; throw e; }));
+}
+let katexReady = null;
+function loadKatex(){ // maths renderer, only fetched the first time a page with equations opens
+  if (katexReady) return katexReady;
+  const base = "https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/";
+  const css = Object.assign(document.createElement("link"), { rel:"stylesheet", href: base + "katex.min.css" }); document.head.append(css);
+  const js = src => new Promise((res, rej) => { const s = Object.assign(document.createElement("script"), { src, onload: res, onerror: rej }); document.head.append(s); });
+  return katexReady = js(base + "katex.min.js").then(() => js(base + "contrib/auto-render.min.js")).catch(e => { katexReady = null; throw e; });
+}
+async function openReader(id, src){
+  if (rdItem === id && rdPage) return; // already showing; a background sync mustn't jump you back to the top
+  rdItem = id; rdPage = null; rdBody.textContent = "Loading…"; rdToc.textContent = "";
+  let data;
+  try { data = await loadReader(src); }
+  catch(e){ if (rdItem === id) { rdItem = null; rdBody.textContent = "Couldn’t load this reading. Check your connection, or use Original ↗."; } return; }
+  if (rdItem !== id || selectedId !== id) return;
+  rdPages = data.pages; rdHome = data.home; rdSource = data.source;
+  rdPages.forEach((p, i) => rdToc.append(new Option(`${i+1}. ${p.title}`, p.id)));
+  const saved = (state.read[id] || {}).page;
+  showReaderPage(rdPages.some(p => p.id === saved) ? saved : rdPages[0].id, false);
+}
+function showReaderPage(pageId, scrollTop){
+  const i = rdPages.findIndex(p => p.id === pageId); if (i < 0) return;
+  const p = rdPages[i], prev = rdPages[i-1], next = rdPages[i+1];
+  rdPage = p.id; rdToc.value = p.id;
+  // page HTML was sanitised at import (only basic text, table and image tags; no scripts or handlers)
+  rdBody.innerHTML = `<h1></h1>${p.html}<div class="rd-nav"></div><p class="rd-credit">From <a target="_blank" rel="noopener"></a>. NASA material, public domain in the US. <a target="_blank" rel="noopener">Read the original ↗</a></p>`;
+  rdBody.querySelector("h1").textContent = p.title;
+  const cr = rdBody.querySelectorAll(".rd-credit a"); cr[0].textContent = rdSource; cr[0].href = rdHome; cr[1].href = p.url;
+  const nav = rdBody.querySelector(".rd-nav");
+  if (prev){ const b = document.createElement("button"); b.type = "button"; b.dataset.page = prev.id; b.textContent = "‹ " + prev.title; nav.append(b); }
+  if (next){ const b = document.createElement("button"); b.type = "button"; b.dataset.page = next.id; b.textContent = next.title + " ›"; nav.append(b); }
+  $("#rdPrev").disabled = !prev; $("#rdNext").disabled = !next;
+  $("#deskGo").href = p.url;
+  if (scrollTop !== false) rdBody.scrollTop = 0;
+  if (/\\\(|\\\[/.test(p.html)) loadKatex().then(() => {
+    if (rdPage === p.id) renderMathInElement(rdBody, { delimiters:[{ left:"\\(", right:"\\)", display:false }, { left:"\\[", right:"\\]", display:true }], throwOnError:false });
+  }).catch(() => {});
+  // remember the page and which pages have been opened (synced with the rest of your notes)
+  const r = state.read[rdItem] || (state.read[rdItem] = { page:null, seen:[] });
+  const first = !r.seen.includes(p.id);
+  if (r.page !== p.id || first){
+    r.page = p.id; if (first) r.seen.push(p.id); queueSave(1500);
+    if (first && r.seen.length === rdPages.length && !state.done[rdItem]) toast("Every page read! Tap Mark done when it’s clicked.");
+  }
+  $("#rdCount").textContent = `${r.seen.filter(s => rdPages.some(x => x.id === s)).length}/${rdPages.length} read`;
+}
+rdBody.addEventListener("click", e => {
+  const a = e.target.closest("[data-page]"); if (!a) return;
+  e.preventDefault(); showReaderPage(a.dataset.page);
+});
+rdToc.addEventListener("change", () => showReaderPage(rdToc.value));
+$("#rdPrev").addEventListener("click", () => { const i = rdPages.findIndex(p => p.id === rdPage); if (i > 0) showReaderPage(rdPages[i-1].id); });
+$("#rdNext").addEventListener("click", () => { const i = rdPages.findIndex(p => p.id === rdPage); if (i < rdPages.length - 1) showReaderPage(rdPages[i+1].id); });
 
 /* ---------- Ink notes (Apple Pencil) ---------- */
 // Pages use a 500-unit-wide coordinate space so writing scales with the panel on every device.
@@ -1236,7 +1330,7 @@ window.addEventListener("online", () => { if (inkDirty.size) inkPush(); if (dirt
 $("#journal").addEventListener("input", e => { state.journal = e.target.value; queueSave(900); });
 
 function apply(data){
-  if (data && typeof data === "object") state = { done:data.done||{}, notes:data.notes||{}, custom:data.custom||{}, journal:data.journal||"", updatedAt:data.updatedAt||0 };
+  if (data && typeof data === "object") state = { done:data.done||{}, notes:data.notes||{}, custom:data.custom||{}, journal:data.journal||"", read:data.read||{}, updatedAt:data.updatedAt||0 };
   $("#journal").value = state.journal; render(); updateProgress();
   if (selectedId && findItem(selectedId)) openDeskQuiet(); else { selectedId = null; pickDefault(); }
 }
