@@ -316,6 +316,18 @@ mark.hl.flash{animation:hlflash 1.6s ease-out}
 .gloss-src a,.gloss-src button{font:inherit;color:var(--ink);background:none;border:0;padding:0;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
 .gloss-src .gdel{margin-left:auto;text-decoration:none;border:1.5px solid var(--rule);border-radius:999px;padding:0 7px}
 .reader-body mark.find{background:var(--sun);color:#1D1B4F;border-radius:3px}
+/* ---------- ✨ AI (open model via Cloudflare Workers AI) ---------- */
+.ai-only[hidden]{display:none !important}
+.ai-box{border:2px solid var(--ink);border-radius:14px;padding:10px 12px;margin:8px 0 12px;background:linear-gradient(180deg,rgba(91,58,140,.10),rgba(226,71,127,.06)),var(--paper);font-size:15px;line-height:1.5}
+.ai-box .ai-head{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.ai-box .ai-head span{flex:1}
+.ai-box .ai-head button{font:inherit;font-size:12px;border:1.5px solid var(--rule);background:none;color:var(--ink);border-radius:999px;padding:0 8px;cursor:pointer;text-transform:none;letter-spacing:0}
+.ai-box p{margin:0 0 8px} .ai-box ul{margin:0 0 8px;padding-left:20px} .ai-box li{margin:2px 0}
+.ai-box .ai-note{font-size:12px;color:var(--muted);margin:4px 0 0}
+.ai-box .ai-wait{color:var(--muted);font-style:italic}
+.ai-box .ai-err{color:var(--mars);font-weight:700}
+.ai-box .look-actions{margin-top:6px}
+.xmeta .xai{border-color:var(--ink)}
 /* ---------- Notes pane: text / ink ---------- */
 .notes-pane{display:flex;flex-direction:column;gap:6px;flex:1 0 auto}
 .notes-pane .desk-notes{flex:1;min-height:180px}
@@ -436,7 +448,7 @@ dialog input{display:block;width:100%;margin-top:4px;font:inherit;font-size:16px
    <div class="desk-top"><button type="button" class="back" id="deskBack">‹ Mission</button><button type="button" class="back list-btn" id="deskList" aria-expanded="false">☰ List</button><span class="desk-stage" id="deskStage"></span><button type="button" class="nb look-btn" id="lookBtn" aria-label="Look up a term">🔍 Look up</button></div>
    <div class="player-wrap" id="playerWrap" hidden><div id="player"></div></div>
    <div class="reader" id="reader" hidden>
-    <div class="reader-bar"><button type="button" class="nb" id="rdPrev" aria-label="Previous page">‹</button><select id="rdToc" aria-label="Page"></select><button type="button" class="nb" id="rdNext" aria-label="Next page">›</button><span class="rd-count" id="rdCount"></span></div>
+    <div class="reader-bar"><button type="button" class="nb" id="rdPrev" aria-label="Previous page">‹</button><select id="rdToc" aria-label="Page"></select><button type="button" class="nb" id="rdNext" aria-label="Next page">›</button><button type="button" class="nb ai-only" id="rdAI" aria-label="Summarise this page with AI" hidden>✨</button><span class="rd-count" id="rdCount"></span></div>
     <article class="reader-body" id="rdBody"></article>
     <div class="hl-bar" id="hlBar" role="toolbar" aria-label="Highlight selection" hidden><span>Highlight</span><button type="button" data-c="0" aria-label="Yellow"></button><button type="button" data-c="1" aria-label="Pink"></button><button type="button" data-c="2" aria-label="Blue"></button><button type="button" data-c="3" aria-label="Green"></button></div>
    </div>
@@ -504,6 +516,8 @@ dialog input{display:block;width:100%;margin-top:4px;font:inherit;font-size:16px
 /* ===== SETUP: paste your Supabase details here (see instructions) ===== */
 const SUPABASE_URL = "https://vauwzrrtboitxzctdxqm.supabase.co";
 const SUPABASE_KEY = "sb_publishable_Utkqo3oOYdnLDUn8K-XEYA_NBm8J4Fa";
+// Cloudflare Worker for ✨ AI (worker/mars-ai.js). Empty = AI buttons hidden.
+let AI_URL = "https://mars-ai.imheet07.workers.dev/";
 /* ===================================================================== */
 const PHASES = [
   { id:"p1", name:"Liftoff", intro:"Fall in love with it again. No maths yet, just intuition.",
@@ -1140,7 +1154,16 @@ function renderCards(){
   }
   list.forEach(h => {
     const card = document.createElement("div"); card.className = "xcard"; card.dataset.id = h.id; card.dataset.c = h.c;
-    card.innerHTML = `<div class="xmeta"><span class="xpage"></span><button type="button" class="xgo">↩ Go to</button><button type="button" class="xdel" aria-label="Delete excerpt">×</button></div><blockquote></blockquote><textarea class="xnote" rows="2" placeholder="Your thoughts…"></textarea>`;
+    card.innerHTML = `<div class="xmeta"><span class="xpage"></span><button type="button" class="xai ai-only"${aiOn() ? "" : " hidden"}>✨ Explain</button><button type="button" class="xgo">↩ Go to</button><button type="button" class="xdel" aria-label="Delete excerpt">×</button></div><blockquote></blockquote><textarea class="xnote" rows="2" placeholder="Your thoughts…"></textarea>`;
+    card.querySelector(".xai").addEventListener("click", () => {
+      const old = card.querySelector(".ai-box"); if (old){ old.remove(); return; }
+      const pg = rdItem === selectedId && rdPages.find(p => p.id === h.page), title = (pg && pg.title) || h.page;
+      // send the paragraph around a short highlight too, so "vector quantity" is explained in context
+      let context = "";
+      if (pg){ const t = pageText(pg), at = h.quote ? t.indexOf(h.quote.slice(0, 60)) : -1; if (at >= 0) context = t.slice(Math.max(0, at - 700), at + h.quote.length + 700); }
+      card.querySelector("blockquote").after(aiBox("Explained simply", () => askAI("explain", { title, text: h.text || h.quote, context }),
+        [["＋ Add to my thoughts", (text, b) => { h.note = (h.note ? h.note.replace(/\s*$/, "\n") : "") + "✨ " + plainAI(text); const ta = card.querySelector(".xnote"); ta.value = h.note; ta.dispatchEvent(new Event("input")); b.textContent = "✓ Added"; b.disabled = true; }]]));
+    });
     const pg = rdItem === selectedId && rdPages.find(p => p.id === h.page);
     card.querySelector(".xpage").textContent = pg ? pg.title : h.page;
     const bq = card.querySelector("blockquote"); bq.textContent = h.text || h.quote;
@@ -1255,6 +1278,19 @@ async function runLook(){
   const term = lookTerm(q);
   // 1. your readings
   const hits = await searchReadings(term); if (seq !== lookSeq) return;
+  // ✨ on request only (each answer uses some of the free daily allowance), grounded in the passages found
+  if (aiOn()){
+    const secA = document.createElement("div"); secA.innerHTML = `<p class="look-sec">✨ Explain simply</p>`;
+    const ask = document.createElement("div"); ask.className = "look-actions";
+    ask.innerHTML = `<button type="button">✨ Explain “${esc(term)}” in plain English</button>`;
+    ask.firstChild.addEventListener("click", () => {
+      ask.remove();
+      const context = hits.slice(0, 3).map(r => `[${r.page.title}] ` + r.text.slice(Math.max(0, r.at - 700), (r.at < 0 ? 0 : r.at) + 1300)).join("\n\n");
+      secA.append(aiBox("Explained simply", () => askAI("answer", { question: q, text: context || "(nothing in my reading covers this)" }),
+        [["★ Save to glossary", (text, b) => saveGloss({ term: term[0].toUpperCase() + term.slice(1), text: plainAI(text), src:{ kind:"ai", title:"✨ AI explanation" } }, b)]]));
+    });
+    secA.append(ask); lookOut.append(secA);
+  }
   const secR = document.createElement("div");
   secR.innerHTML = `<p class="look-sec">In your reading</p>`;
   if (!hits.length) secR.insertAdjacentHTML("beforeend", `<p class="look-hint">Not covered in your imported reading yet.</p>`);
@@ -1334,7 +1370,8 @@ function renderGlossary(target, inLook){
     el.innerHTML = `<b></b><p></p><div class="gloss-src"><span>From</span><button type="button" class="gsrc"></button><button type="button" class="gdel" aria-label="Remove from glossary">×</button></div>`;
     el.querySelector("b").textContent = g.term; el.querySelector("p").textContent = g.text;
     el.querySelector("p").addEventListener("click", () => el.classList.toggle("open"));
-    const src = el.querySelector(".gsrc"); src.textContent = g.src.kind === "wiki" ? "Wikipedia ↗" : "NASA · " + g.src.title;
+    const src = el.querySelector(".gsrc"); src.textContent = g.src.kind === "wiki" ? "Wikipedia ↗" : g.src.kind === "ai" ? "✨ AI explanation" : "NASA · " + g.src.title;
+    if (g.src.kind === "ai") src.disabled = true;
     src.addEventListener("click", () => {
       if (g.src.kind === "wiki") window.open(g.src.url, "_blank", "noopener");
       else jumpToReading(g.src.item, g.src.page, g.text.split(/\s+/).slice(0, 6).join(" "));
@@ -1352,6 +1389,72 @@ $("#lookClose").addEventListener("click", () => lookDlg.close());
 $("#lookForm").addEventListener("submit", e => { e.preventDefault(); clearTimeout(lookTimer); runLook(); lookQ.blur(); });
 lookQ.addEventListener("input", () => { clearTimeout(lookTimer); lookTimer = setTimeout(runLook, 500); });
 lookDlg.addEventListener("click", e => { if (e.target === lookDlg) lookDlg.close(); }); // tap outside to close
+
+/* ---------- ✨ AI: summaries and explanations from an open model (Cloudflare Workers AI) ---------- */
+const aiOn = () => !!AI_URL;
+async function aiToken(){ const s = sb && (await sb.auth.getSession()).data.session; return s ? s.access_token : null; }
+async function askAI(task, payload){
+  const token = await aiToken();
+  if (!token) throw new Error("Sign in under Flight systems to use ✨.");
+  let r;
+  try {
+    r = await fetch(AI_URL, { method:"POST", headers:{ "Content-Type":"application/json", Authorization:"Bearer " + token }, body: JSON.stringify({ task, ...payload }) });
+  } catch(e){ throw new Error("Couldn’t reach the AI. Check your connection."); }
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok || !j.text) throw new Error(j.error || "The AI didn’t respond. Try again.");
+  return j.text;
+}
+// the model answers in plain text with "- " bullets and the odd **bold**
+function aiHTML(text){
+  const fmt = s => esc(s).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");
+  let out = "", list = false;
+  text.split(/\n+/).map(l => l.trim()).filter(Boolean).forEach(l => {
+    const m = l.match(/^[-*•]\s+(.*)/);
+    if (m){ if (!list){ out += "<ul>"; list = true; } out += `<li>${fmt(m[1])}</li>`; }
+    else { if (list){ out += "</ul>"; list = false; } out += `<p>${fmt(l.replace(/^#+\s*/, ""))}</p>`; }
+  });
+  return out + (list ? "</ul>" : "");
+}
+const plainAI = text => text.replace(/\*\*(.+?)\*\*/g, "$1").replace(/^#+\s*/gm, ""); // for notes, cards and the glossary
+// a box that shows "thinking…", then the answer (or a friendly error), plus action buttons
+function aiBox(label, run, actions){
+  const box = document.createElement("div"); box.className = "ai-box";
+  box.innerHTML = `<div class="ai-head"><span>✨ ${esc(label)}</span><button type="button" class="ai-again">Again</button><button type="button" class="ai-x" aria-label="Close">×</button></div><div class="ai-body"></div><div class="look-actions" hidden></div><p class="ai-note">Open model via Cloudflare. It can be wrong, so check against the reading.</p>`;
+  const bodyEl = box.querySelector(".ai-body"), act = box.querySelector(".look-actions");
+  const go = async fresh => {
+    bodyEl.innerHTML = `<p class="ai-wait">Thinking…</p>`; act.hidden = true;
+    try {
+      const text = await run(fresh);
+      bodyEl.innerHTML = aiHTML(text); act.textContent = ""; (actions || []).forEach(([t, fn]) => { const b = document.createElement("button"); b.type = "button"; b.textContent = t; b.addEventListener("click", () => fn(text, b)); act.append(b); });
+      act.hidden = !(actions && actions.length);
+    } catch(e){ bodyEl.innerHTML = `<p class="ai-err"></p>`; bodyEl.firstChild.textContent = e.message; }
+  };
+  box.querySelector(".ai-again").addEventListener("click", () => go(true));
+  box.querySelector(".ai-x").addEventListener("click", () => box.remove());
+  go(false);
+  return box;
+}
+// page summaries are cached on this device so re-opening one doesn't spend the daily allowance again
+const aiCacheKey = (item, page) => `mars-ai-sum:${item}:${page}`;
+$("#rdAI").addEventListener("click", () => {
+  const old = rdBody.querySelector(".ai-box.ai-summary"); if (old){ old.remove(); return; }
+  const p = rdPages.find(x => x.id === rdPage); if (!p) return;
+  const item = rdItem, page = p.id;
+  const box = aiBox("Summary of this page", async fresh => {
+    const cached = !fresh && prefGet(aiCacheKey(item, page), "");
+    if (cached) return cached;
+    const t = await askAI("summarise", { title: p.title, text: pageText(p) });
+    prefSet(aiCacheKey(item, page), t); return t;
+  }, [["＋ Add to my notes", (text, b) => {
+    const add = `✨ Summary: ${p.title}\n${plainAI(text)}\n`;
+    state.notes[item] = (state.notes[item] ? state.notes[item].replace(/\s*$/, "\n\n") : "") + add;
+    if (selectedId === item) deskNotes.value = state.notes[item];
+    queueSave(400); syncModeUI(); b.textContent = "✓ Added to notes"; b.disabled = true;
+  }]]);
+  box.classList.add("ai-summary");
+  rdBody.querySelector("h1").after(box); rdBody.scrollTop = 0;
+});
+function syncAIUI(){ document.querySelectorAll(".ai-only").forEach(el => { el.hidden = !aiOn(); }); }
 
 /* ---------- Ink notes (Apple Pencil) ---------- */
 // Pages use a 500-unit-wide coordinate space so writing scales with the panel on every device.
@@ -1810,7 +1913,7 @@ $("#importInput").addEventListener("change", async e => {
 });
 
 /* ---------- Boot ---------- */
-applyFs();
+applyFs(); syncAIUI();
 { const nf = parseFloat(prefGet("mars-split", "")); setSplit(isFinite(nf) ? nf : null, false); }
 apply(loadLocal());
 syncModeUI();
