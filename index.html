@@ -196,7 +196,7 @@ li.item.selected{background:var(--paper);border-radius:14px;box-shadow:inset 0 0
   body.studying .reader{flex:1 1 auto;height:auto;min-height:260px}
   body.studying .desk-nav{margin-top:auto}
   body.studying .notes-pane{height:100%;min-height:0;position:relative}
-  body.studying .notes-pane .desk-notes,body.studying .ink-wrap{min-height:0}
+  body.studying .notes-pane .desk-notes,body.studying .ink-wrap,body.studying .cards-wrap{min-height:0}
   body.studying .split-handle{display:block}
   body.studying #wideNotes{display:inline-block}
   /* dragged divider: notes take --nf of the width, video column never below 360px */
@@ -250,12 +250,39 @@ body.study-enter .left{transition:none !important}
 .rd-nav{display:flex;justify-content:space-between;gap:8px;margin-top:16px}
 .rd-nav button{font:inherit;font-weight:800;font-size:14px;border:2px solid var(--ink);background:var(--page);color:var(--ink);border-radius:999px;padding:6px 14px;cursor:pointer;max-width:48%;text-align:left}
 .rd-nav button:last-child{margin-left:auto;text-align:right}
+/* ---------- Highlights & excerpt cards ---------- */
+.reader{position:relative}
+mark.hl{color:inherit;border-radius:3px;padding:0 1px;cursor:pointer;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+mark.hl[data-c="0"]{background:rgba(255,200,40,.5)} mark.hl[data-c="1"]{background:rgba(255,105,160,.4)}
+mark.hl[data-c="2"]{background:rgba(70,190,230,.4)} mark.hl[data-c="3"]{background:rgba(80,210,140,.42)}
+mark.hl.flash{animation:hlflash 1.6s ease-out}
+@keyframes hlflash{0%,50%{background:var(--sun);color:#1D1B4F}}
+.hl-bar{position:absolute;z-index:5;display:flex;gap:7px;align-items:center;padding:6px 8px 6px 12px;background:var(--ink);color:var(--page);border-radius:999px;box-shadow:3px 3px 0 rgba(0,0,0,.25);font-size:13px;font-weight:800;-webkit-user-select:none;user-select:none}
+.hl-bar[hidden]{display:none}
+.hl-bar button{width:30px;height:30px;border-radius:50%;border:2px solid var(--page);padding:0;cursor:pointer;touch-action:manipulation}
+.hl-bar [data-c="0"],.xcard[data-c="0"]{--hlc:#FFC828} .hl-bar [data-c="1"],.xcard[data-c="1"]{--hlc:#FF69A0}
+.hl-bar [data-c="2"],.xcard[data-c="2"]{--hlc:#46BEE6} .hl-bar [data-c="3"],.xcard[data-c="3"]{--hlc:#50D28C}
+.hl-bar button{background:var(--hlc)}
+.cards-wrap{flex:1;min-height:180px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding:2px 4px 12px 2px;overscroll-behavior:contain}
+.cards-wrap[hidden]{display:none}
+.cards-empty{margin:auto 0;padding:18px;border:2px dashed var(--rule);border-radius:14px;color:var(--muted);font-size:14px;text-align:center}
+.xcard{flex:none;background:var(--paper);border:2px solid var(--ink);border-left:8px solid var(--hlc);border-radius:12px;padding:8px 10px 8px 12px;box-shadow:3px 3px 0 var(--rule)}
+.xcard.flash{animation:cardflash 1.4s ease-out}
+@keyframes cardflash{0%,55%{box-shadow:0 0 0 4px var(--sun)}100%{box-shadow:3px 3px 0 var(--rule)}}
+.xmeta{display:flex;gap:6px;align-items:center;font-size:12px;font-weight:800;color:var(--muted)}
+.xmeta .xpage{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.xmeta button{font:inherit;font-size:12px;font-weight:800;border:2px solid var(--ink);background:var(--page);color:var(--ink);border-radius:999px;padding:2px 9px;cursor:pointer;touch-action:manipulation}
+.xcard blockquote{margin:6px 0;font-size:15px;line-height:1.5;color:var(--ink);display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:6;overflow:hidden;cursor:pointer}
+.xcard.open blockquote{display:block}
+.xcard blockquote .katex{font-size:1em}
+.xcard blockquote::before{content:"❝ ";color:var(--hlc);font-weight:800}
+.xcard textarea.xnote{display:block;min-height:0;height:52px;resize:none;--nfs:20px;--nlh:26px;box-shadow:none;padding:0 6px;border-radius:6px}
 /* ---------- Notes pane: text / ink ---------- */
 .notes-pane{display:flex;flex-direction:column;gap:6px;flex:1 0 auto}
 .notes-pane .desk-notes{flex:1;min-height:180px}
 .notes-bar{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 .seg{display:inline-flex;border:2px solid var(--ink);border-radius:999px;overflow:hidden;flex:none}
-.seg button{font:inherit;font-size:13px;font-weight:800;border:0;background:var(--paper);color:var(--ink);padding:5px 12px;cursor:pointer;touch-action:manipulation}
+.seg button{font:inherit;font-size:13px;font-weight:800;border:0;background:var(--paper);color:var(--ink);padding:5px 9px;cursor:pointer;touch-action:manipulation}
 .seg button[aria-pressed="true"]{background:var(--ink);color:var(--page)}
 .seg .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--pink);margin-left:5px;vertical-align:middle}
 .nb-group{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
@@ -370,6 +397,7 @@ dialog input{display:block;width:100%;margin-top:4px;font:inherit;font-size:16px
    <div class="reader" id="reader" hidden>
     <div class="reader-bar"><button type="button" class="nb" id="rdPrev" aria-label="Previous page">‹</button><select id="rdToc" aria-label="Page"></select><button type="button" class="nb" id="rdNext" aria-label="Next page">›</button><span class="rd-count" id="rdCount"></span></div>
     <article class="reader-body" id="rdBody"></article>
+    <div class="hl-bar" id="hlBar" role="toolbar" aria-label="Highlight selection" hidden><span>Highlight</span><button type="button" data-c="0" aria-label="Yellow"></button><button type="button" data-c="1" aria-label="Pink"></button><button type="button" data-c="2" aria-label="Blue"></button><button type="button" data-c="3" aria-label="Green"></button></div>
    </div>
    <div class="handoff-bar" id="handoffBar" hidden><span>▶ Watching in the YouTube app</span><button type="button" id="showPlayer">Show player here</button></div>
    <h2 class="desk-title" id="deskTitle"></h2>
@@ -387,7 +415,7 @@ dialog input{display:block;width:100%;margin-top:4px;font:inherit;font-size:16px
    <div class="notes-pane" id="notesPane">
     <div class="split-handle" id="splitHandle" role="separator" aria-orientation="vertical" aria-label="Resize notes" tabindex="0"></div>
     <div class="notes-bar">
-     <div class="seg" role="group" aria-label="Notes mode"><button type="button" data-mode="text" aria-pressed="true">Aa Text</button><button type="button" data-mode="ink" aria-pressed="false">✎ Ink</button></div>
+     <div class="seg" role="group" aria-label="Notes mode"><button type="button" data-mode="text" aria-pressed="true">Aa Text</button><button type="button" data-mode="ink" aria-pressed="false">✎ Ink</button><button type="button" data-mode="cards" aria-pressed="false" hidden>❝ Excerpts</button></div>
      <div class="nb-group" id="textSize"><button type="button" class="nb" id="fsDown" aria-label="Smaller text">A−</button><button type="button" class="nb" id="fsUp" aria-label="Bigger text">A+</button></div>
      <div class="nb-group" id="inkHist" hidden><button type="button" class="nb" id="inkUndo" aria-label="Undo">↶</button><button type="button" class="nb" id="inkRedo" aria-label="Redo">↷</button></div>
      <button type="button" class="nb" id="wideNotes" aria-pressed="false">⇔ Wide</button>
@@ -401,6 +429,7 @@ dialog input{display:block;width:100%;margin-top:4px;font:inherit;font-size:16px
     </div>
     <textarea class="desk-notes" id="deskNotes" placeholder="What clicked? What’s still fuzzy?"></textarea>
     <div class="ink-wrap" id="inkWrap" hidden><canvas id="inkCanvas" aria-label="Handwritten notes"></canvas><div id="inkSpace"></div></div>
+    <div class="cards-wrap" id="cardsWrap" aria-label="Excerpts" hidden></div>
    </div>
   </div>
  </aside>
@@ -469,7 +498,7 @@ const PATCH = {
 const RANKS = [[0,"Cadet"],[0.15,"Launch technician"],[0.35,"Flight engineer"],[0.6,"Mission specialist"],[0.85,"Commander"],[1,"First human on Mars"]];
 const CHEERS = ["Burn complete!","Nominal. Keep going.","Go for orbit!","Fuel loaded.","Houston is impressed.","Clean separation!"];
 
-let state = { done:{}, notes:{}, custom:{}, journal:"", read:{} };
+let state = { done:{}, notes:{}, custom:{}, journal:"", read:{}, hl:{} };
 let saveTimer = null, writing = false, pendingWrite = false, backend = null;
 const $ = s => document.querySelector(s);
 const statusEl = $("#status");
@@ -541,7 +570,7 @@ function renderItem(it, phase){
 }
 function setStudyBtn(btn, id){
   btn.textContent = "Study";
-  if ((state.notes[id]||"").trim() || hasInk(id)){ const d = document.createElement("span"); d.className = "dot"; d.title = "Has notes"; btn.append(d); }
+  if ((state.notes[id]||"").trim() || hasInk(id) || hlsFor(id).length){ const d = document.createElement("span"); d.className = "dot"; d.title = "Has notes"; btn.append(d); }
 }
 function findItem(id){
   for (const g of allItems()){ const i = g.items.findIndex(x => x.id === id); if (i >= 0) return { item:g.items[i], phase:g.phase, index:i, items:g.items }; }
@@ -604,6 +633,7 @@ function openDesk(id, focus){
   $("#nudge").hidden = true; lastStamp = null;
   deskNotes.value = state.notes[id] || "";
   ink.undo = []; ink.redo = []; ink.live = null; inkWrap.scrollTop = 0; inkLayout(); syncModeUI();
+  hlBar.hidden = true; renderCards();
   renderMoments();
   deskNotes.setAttribute("aria-label", "Notes on " + f.item.title);
   $("#deskRemove").hidden = !f.item.custom;
@@ -881,7 +911,7 @@ function loadKatex(){ // maths renderer, only fetched the first time a page with
   return katexReady = js(base + "katex.min.js").then(() => js(base + "contrib/auto-render.min.js")).catch(e => { katexReady = null; throw e; });
 }
 async function openReader(id, src){
-  if (rdItem === id && rdPage) return; // already showing; a background sync mustn't jump you back to the top
+  if (rdItem === id && rdPage){ if (rdReady) paintHighlights(); return; } // already showing; a background sync mustn't jump you back to the top
   rdItem = id; rdPage = null; rdBody.textContent = "Loading…"; rdToc.textContent = "";
   let data;
   try { data = await loadReader(src); }
@@ -891,13 +921,14 @@ async function openReader(id, src){
   rdPages.forEach((p, i) => rdToc.append(new Option(`${i+1}. ${p.title}`, p.id)));
   const saved = (state.read[id] || {}).page;
   showReaderPage(rdPages.some(p => p.id === saved) ? saved : rdPages[0].id, false);
+  renderCards(); // page titles are known now
 }
 function showReaderPage(pageId, scrollTop){
   const i = rdPages.findIndex(p => p.id === pageId); if (i < 0) return;
   const p = rdPages[i], prev = rdPages[i-1], next = rdPages[i+1];
-  rdPage = p.id; rdToc.value = p.id;
+  rdPage = p.id; rdToc.value = p.id; rdReady = false; hlBar.hidden = true;
   // page HTML was sanitised at import (only basic text, table and image tags; no scripts or handlers)
-  rdBody.innerHTML = `<h1></h1>${p.html}<div class="rd-nav"></div><p class="rd-credit">From <a target="_blank" rel="noopener"></a>. NASA material, public domain in the US. <a target="_blank" rel="noopener">Read the original ↗</a></p>`;
+  rdBody.innerHTML = `<h1></h1><div class="rd-content">${p.html}</div><div class="rd-nav"></div><p class="rd-credit">From <a target="_blank" rel="noopener"></a>. NASA material, public domain in the US. <a target="_blank" rel="noopener">Read the original ↗</a></p>`;
   rdBody.querySelector("h1").textContent = p.title;
   const cr = rdBody.querySelectorAll(".rd-credit a"); cr[0].textContent = rdSource; cr[0].href = rdHome; cr[1].href = p.url;
   const nav = rdBody.querySelector(".rd-nav");
@@ -906,9 +937,12 @@ function showReaderPage(pageId, scrollTop){
   $("#rdPrev").disabled = !prev; $("#rdNext").disabled = !next;
   $("#deskGo").href = p.url;
   if (scrollTop !== false) rdBody.scrollTop = 0;
+  // highlights are anchored to the text with equations rendered, so paint them once maths is done
+  const ready = () => { if (rdPage !== p.id) return; rdReady = true; paintHighlights(); if (pendingFlash){ flashMark(pendingFlash); pendingFlash = null; } };
   if (/\\\(|\\\[/.test(p.html)) loadKatex().then(() => {
     if (rdPage === p.id) renderMathInElement(rdBody, { delimiters:[{ left:"\\(", right:"\\)", display:false }, { left:"\\[", right:"\\]", display:true }], throwOnError:false });
-  }).catch(() => {});
+  }).catch(() => {}).finally(ready);
+  else ready();
   // remember the page and which pages have been opened (synced with the rest of your notes)
   const r = state.read[rdItem] || (state.read[rdItem] = { page:null, seen:[] });
   const first = !r.seen.includes(p.id);
@@ -919,12 +953,156 @@ function showReaderPage(pageId, scrollTop){
   $("#rdCount").textContent = `${r.seen.filter(s => rdPages.some(x => x.id === s)).length}/${rdPages.length} read`;
 }
 rdBody.addEventListener("click", e => {
-  const a = e.target.closest("[data-page]"); if (!a) return;
-  e.preventDefault(); showReaderPage(a.dataset.page);
+  const a = e.target.closest("[data-page]");
+  if (a){ e.preventDefault(); showReaderPage(a.dataset.page); return; }
+  const m = e.target.closest("mark.hl"); // tapping a highlight opens its card
+  if (m && getSelection().isCollapsed){ setNotesMode("cards"); flashCard(m.dataset.hl); }
 });
 rdToc.addEventListener("change", () => showReaderPage(rdToc.value));
 $("#rdPrev").addEventListener("click", () => { const i = rdPages.findIndex(p => p.id === rdPage); if (i > 0) showReaderPage(rdPages[i-1].id); });
 $("#rdNext").addEventListener("click", () => { const i = rdPages.findIndex(p => p.id === rdPage); if (i < rdPages.length - 1) showReaderPage(rdPages[i+1].id); });
+
+/* ---------- Highlights → excerpt cards ---------- */
+// Each highlight stores its quote, ~32 characters either side, and its text offsets (Hypothesis-style),
+// counted over the page text with rendered equations skipped, so it re-attaches reliably.
+const hlBar = $("#hlBar"), cardsWrap = $("#cardsWrap");
+let rdReady = false, pendingFlash = null, selTimer = 0;
+const hlsFor = id => (id && state.hl && state.hl[id]) || [];
+const rdContent = () => rdBody.querySelector(".rd-content");
+function textNodes(root){
+  const out = [], w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode: n => n.parentElement.closest(".katex") ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT });
+  for (let n; (n = w.nextNode());) out.push(n);
+  return out;
+}
+function rangeOffsets(root, range){
+  let pos = 0, start = null, end = null, text = "";
+  for (const n of textNodes(root)){
+    const len = n.data.length;
+    if (range.intersectsNode(n)){
+      const s = n === range.startContainer ? range.startOffset : 0, e = n === range.endContainer ? range.endOffset : len;
+      if (e > s){ if (start === null) start = pos + s; end = pos + e; }
+    }
+    text += n.data; pos += len;
+  }
+  if (start === null) return null;
+  while (start < end && /\s/.test(text[start])) start++;
+  while (end > start && /\s/.test(text[end-1])) end--;
+  return end > start ? { start, end, text } : null;
+}
+function anchor(h, text){
+  if (text.slice(h.start, h.end) === h.quote) return [h.start, h.end];
+  let best = -1, bestScore = -Infinity;
+  for (let i = text.indexOf(h.quote); i >= 0; i = text.indexOf(h.quote, i + 1)){
+    const score = (text.slice(Math.max(0, i - h.prefix.length), i) === h.prefix ? 2 : 0)
+      + (text.slice(i + h.quote.length, i + h.quote.length + h.suffix.length) === h.suffix ? 2 : 0) - Math.abs(i - h.start) / 1e6;
+    if (score > bestScore){ bestScore = score; best = i; }
+  }
+  return best < 0 ? null : [best, best + h.quote.length];
+}
+function wrapRange(root, start, end, h){
+  let pos = 0;
+  for (const n of textNodes(root)){
+    const len = n.data.length, s = Math.max(start, pos), e = Math.min(end, pos + len);
+    if (e > s && n.data.slice(s - pos, e - pos).trim()){ // skip whitespace between blocks (would break list/table markup)
+      let node = n;
+      if (s > pos) node = node.splitText(s - pos);
+      if (e < pos + len) node.splitText(e - s);
+      const m = document.createElement("mark"); m.className = "hl"; m.dataset.hl = h.id; m.dataset.c = h.c;
+      node.replaceWith(m); m.append(node);
+    }
+    pos += len; if (pos >= end) break;
+  }
+}
+function paintHighlights(){
+  const root = rdContent(); if (!root || !rdReady) return;
+  root.querySelectorAll("mark.hl").forEach(m => m.replaceWith(...m.childNodes)); root.normalize();
+  const text = textNodes(root).map(n => n.data).join("");
+  hlsFor(rdItem).filter(h => h.page === rdPage).forEach(h => { const a = anchor(h, text); if (a) wrapRange(root, a[0], a[1], h); });
+}
+function liveSelection(){
+  const s = getSelection(), root = rdContent();
+  if (!rdReady || !root || !s.rangeCount || s.isCollapsed) return null;
+  const r = s.getRangeAt(0); return root.contains(r.commonAncestorContainer) ? r : null;
+}
+function syncHlBar(){
+  const r = liveSelection(); if (!r){ hlBar.hidden = true; return; }
+  const rr = r.getBoundingClientRect(), box = $("#reader").getBoundingClientRect();
+  hlBar.hidden = false;
+  const w = hlBar.offsetWidth, h = hlBar.offsetHeight;
+  // below the selection so it doesn't fight the iPad's own Copy / Look Up menu above it
+  let y = rr.bottom - box.top + 12; if (y + h > box.height - 8) y = rr.top - box.top - h - 12;
+  hlBar.style.left = Math.min(Math.max(8, rr.left + rr.width/2 - box.left - w/2), box.width - w - 8) + "px";
+  hlBar.style.top = Math.min(Math.max(48, y), box.height - h - 8) + "px";
+}
+document.addEventListener("selectionchange", () => { clearTimeout(selTimer); selTimer = setTimeout(syncHlBar, 120); });
+rdBody.addEventListener("scroll", () => { if (!hlBar.hidden) syncHlBar(); }, { passive:true });
+// act on pointerdown so tapping a colour doesn't clear the selection first
+hlBar.addEventListener("pointerdown", e => { const b = e.target.closest("button"); if (!b) return; e.preventDefault(); addHighlight(+b.dataset.c); });
+function addHighlight(c){
+  const r = liveSelection(), root = rdContent(); if (!r) return;
+  const o = rangeOffsets(root, r); if (!o) return;
+  const quote = o.text.slice(o.start, o.end);
+  // what the card shows: the selection with each rendered equation turned back into its TeX source
+  const frag = r.cloneContents();
+  frag.querySelectorAll(".katex").forEach(k => { const a = k.querySelector("annotation"); k.replaceWith(a ? `\\(${a.textContent.replace(/\\(LARGE|Large|large|huge|Huge)\s*/g, "")}\\)` : ""); });
+  const text = frag.textContent.replace(/\s+/g, " ").trim().slice(0, 3000);
+  const h = { id:"h" + Date.now().toString(36), page:rdPage, start:o.start, end:o.end, quote, text,
+    prefix:o.text.slice(Math.max(0, o.start - 32), o.start), suffix:o.text.slice(o.end, o.end + 32), c, note:"", at:Date.now() };
+  (state.hl[rdItem] || (state.hl[rdItem] = [])).push(h);
+  getSelection().removeAllRanges(); hlBar.hidden = true;
+  paintHighlights(); renderCards(); syncModeUI(); queueSave(600);
+  const b = document.querySelector(`li.item[data-id="${CSS.escape(rdItem)}"] .note-btn`); if (b) setStudyBtn(b, rdItem);
+  if (effMode() !== "cards") toast("Added to ❝ Excerpts");
+}
+function renderCards(){
+  cardsWrap.textContent = "";
+  const it = selectedId && findItem(selectedId); if (!it || !it.item.reader) return;
+  const order = id => { const i = rdItem === selectedId ? rdPages.findIndex(p => p.id === id) : -1; return i < 0 ? 999 : i; };
+  const list = [...hlsFor(selectedId)].sort((a, b) => order(a.page) - order(b.page) || a.start - b.start);
+  if (!list.length){
+    const e = document.createElement("p"); e.className = "cards-empty";
+    e.textContent = "Select text in the reader and pick a colour to highlight it. Each highlight becomes a card here: add your thoughts, and tap ↩ to jump back to the passage.";
+    cardsWrap.append(e); return;
+  }
+  list.forEach(h => {
+    const card = document.createElement("div"); card.className = "xcard"; card.dataset.id = h.id; card.dataset.c = h.c;
+    card.innerHTML = `<div class="xmeta"><span class="xpage"></span><button type="button" class="xgo">↩ Go to</button><button type="button" class="xdel" aria-label="Delete excerpt">×</button></div><blockquote></blockquote><textarea class="xnote" rows="2" placeholder="Your thoughts…"></textarea>`;
+    const pg = rdItem === selectedId && rdPages.find(p => p.id === h.page);
+    card.querySelector(".xpage").textContent = pg ? pg.title : h.page;
+    const bq = card.querySelector("blockquote"); bq.textContent = h.text || h.quote;
+    if (/\\\(/.test(bq.textContent)) loadKatex().then(() => renderMathInElement(bq, { delimiters:[{ left:"\\(", right:"\\)", display:false }], throwOnError:false })).catch(() => {});
+    bq.title = "Tap to expand"; bq.addEventListener("click", () => card.classList.toggle("open"));
+    const ta = card.querySelector(".xnote"); ta.value = h.note || "";
+    ta.setAttribute("aria-label", "Your thoughts on this excerpt");
+    const grow = () => { ta.style.height = "auto"; ta.style.height = Math.max(52, ta.scrollHeight) + "px"; };
+    ta.addEventListener("input", () => { h.note = ta.value; grow(); queueSave(900); });
+    card.querySelector(".xgo").addEventListener("click", () => goToHighlight(h));
+    card.querySelector(".xdel").addEventListener("click", () => {
+      if (!confirm("Delete this excerpt and its highlight?")) return;
+      state.hl[selectedId] = hlsFor(selectedId).filter(x => x !== h);
+      paintHighlights(); renderCards(); syncModeUI(); queueSave(600);
+      const b = document.querySelector(`li.item[data-id="${CSS.escape(selectedId)}"] .note-btn`); if (b) setStudyBtn(b, selectedId);
+    });
+    cardsWrap.append(card); requestAnimationFrame(grow);
+  });
+}
+function goToHighlight(h){
+  if (rdItem !== selectedId) return;
+  if (rdPage === h.page && rdReady) flashMark(h.id);
+  else { pendingFlash = h.id; showReaderPage(h.page); }
+}
+function flashMark(id){
+  const marks = rdBody.querySelectorAll(`mark.hl[data-hl="${CSS.escape(id)}"]`); if (!marks.length) return;
+  const mr = marks[0].getBoundingClientRect(), br = rdBody.getBoundingClientRect();
+  rdBody.scrollTop += mr.top - br.top - br.height / 3;
+  marks.forEach(m => { m.classList.remove("flash"); void m.offsetWidth; m.classList.add("flash"); });
+}
+function flashCard(id){
+  const c = cardsWrap.querySelector(`.xcard[data-id="${CSS.escape(id)}"]`); if (!c) return;
+  const cr = c.getBoundingClientRect(), wr = cardsWrap.getBoundingClientRect();
+  cardsWrap.scrollTop += cr.top - wr.top - 8;
+  c.classList.remove("flash"); void c.offsetWidth; c.classList.add("flash");
+}
 
 /* ---------- Ink notes (Apple Pencil) ---------- */
 // Pages use a 500-unit-wide coordinate space so writing scales with the panel on every device.
@@ -1195,21 +1373,25 @@ $("#inkTools").addEventListener("click", e => {
   document.querySelectorAll("#inkTools [data-tool]").forEach(x => x.setAttribute("aria-pressed", String(x.dataset.tool === ink.tool)));
   document.querySelectorAll("#inkTools [data-color]").forEach(x => x.setAttribute("aria-pressed", String(+x.dataset.color === ink.color)));
 });
-// text / ink switch
-function setNotesMode(m){ notesMode = m === "ink" ? "ink" : "text"; prefSet("mars-notes-mode", notesMode); syncModeUI(); inkLayout(); }
+// text / ink / excerpts switch (excerpts only exist for in-site readings; elsewhere that choice shows text)
+function setNotesMode(m){ notesMode = ["text", "ink", "cards"].includes(m) ? m : "text"; prefSet("mars-notes-mode", notesMode); syncModeUI(); inkLayout(); }
+function effMode(){ const it = selectedId && findItem(selectedId); return notesMode === "cards" && !(it && it.item.reader) ? "text" : notesMode; }
 function syncModeUI(){
-  const isInk = notesMode === "ink";
-  deskNotes.hidden = isInk; inkWrap.hidden = !isInk; $("#inkTools").hidden = !isInk; $("#inkHist").hidden = !isInk; $("#textSize").hidden = isInk;
+  const m = effMode(), it = selectedId && findItem(selectedId), hasReader = !!(it && it.item.reader), nCards = hlsFor(selectedId).length;
+  deskNotes.hidden = m !== "text"; inkWrap.hidden = m !== "ink"; cardsWrap.hidden = m !== "cards";
+  $("#inkTools").hidden = $("#inkHist").hidden = m !== "ink"; $("#textSize").hidden = m !== "text";
   document.querySelectorAll(".seg button").forEach(b => {
-    const m = b.dataset.mode, other = m === "ink" ? hasInk(selectedId) : !!(state.notes[selectedId] || "").trim();
-    b.setAttribute("aria-pressed", String(m === notesMode));
-    b.textContent = m === "ink" ? "✎ Ink" : "Aa Text";
-    if (other && m !== notesMode){ const d = document.createElement("span"); d.className = "dot"; d.title = "Has notes"; b.append(d); }
+    const k = b.dataset.mode;
+    b.hidden = k === "cards" && !hasReader;
+    b.setAttribute("aria-pressed", String(k === m));
+    b.textContent = k === "ink" ? "✎ Ink" : k === "cards" ? "❝ Excerpts" + (nCards ? " " + nCards : "") : "Aa Text";
+    const other = k === "ink" ? hasInk(selectedId) : k === "text" ? !!(state.notes[selectedId] || "").trim() : false;
+    if (other && k !== m){ const d = document.createElement("span"); d.className = "dot"; d.title = "Has notes"; b.append(d); }
   });
   syncUndoUI();
 }
 document.querySelector(".seg").addEventListener("click", e => { const b = e.target.closest("button"); if (b) setNotesMode(b.dataset.mode); });
-deskNotes.addEventListener("input", () => { if (notesMode === "text") syncModeUI(); });
+deskNotes.addEventListener("input", () => { if (effMode() === "text") syncModeUI(); });
 
 /* ---------- Notes sizing: text size, divider, wide notes ---------- */
 let notesFs = Math.min(34, Math.max(16, +prefGet("mars-notes-fs", 22) || 22));
@@ -1330,7 +1512,7 @@ window.addEventListener("online", () => { if (inkDirty.size) inkPush(); if (dirt
 $("#journal").addEventListener("input", e => { state.journal = e.target.value; queueSave(900); });
 
 function apply(data){
-  if (data && typeof data === "object") state = { done:data.done||{}, notes:data.notes||{}, custom:data.custom||{}, journal:data.journal||"", read:data.read||{}, updatedAt:data.updatedAt||0 };
+  if (data && typeof data === "object") state = { done:data.done||{}, notes:data.notes||{}, custom:data.custom||{}, journal:data.journal||"", read:data.read||{}, hl:data.hl||{}, updatedAt:data.updatedAt||0 };
   $("#journal").value = state.journal; render(); updateProgress();
   if (selectedId && findItem(selectedId)) openDeskQuiet(); else { selectedId = null; pickDefault(); }
 }
