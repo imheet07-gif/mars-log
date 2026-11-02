@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Mission to Mars app icon: full-bleed so iOS can round the corners; key art sits inside the maskable safe zone -->
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2B2A6B"/><stop offset=".62" stop-color="#5B3A8C"/><stop offset="1" stop-color="#E2477F"/>
+    </linearGradient>
+    <radialGradient id="earth" cx="55%" cy="30%" r="70%"><stop offset="0" stop-color="#5FD0F5"/><stop offset="1" stop-color="#1F5FB8"/></radialGradient>
+    <radialGradient id="mars" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="#FF8A5C"/><stop offset="1" stop-color="#B23A22"/></radialGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#sky)"/>
+  <g fill="#FFF6E0">
+    <circle cx="150" cy="170" r="7"/><circle cx="300" cy="110" r="5"/><circle cx="420" cy="230" r="6" opacity=".8"/>
+    <circle cx="560" cy="140" r="4"/><circle cx="120" cy="420" r="5" opacity=".8"/><circle cx="880" cy="560" r="6"/>
+    <circle cx="690" cy="600" r="4" opacity=".8"/><circle cx="930" cy="140" r="5"/><circle cx="250" cy="560" r="4"/>
+  </g>
+  <path d="M 250 800 C 330 560, 540 400, 720 360" fill="none" stroke="#FFFFFF" stroke-opacity=".5" stroke-width="12" stroke-dasharray="4 30" stroke-linecap="round"/>
+  <path d="M 250 800 C 300 650, 380 560, 450 505" fill="none" stroke="#FFB238" stroke-width="18" stroke-linecap="round"/>
+  <circle cx="780" cy="330" r="130" fill="url(#mars)"/>
+  <circle cx="745" cy="295" r="24" fill="#9E321C" opacity=".55"/><circle cx="820" cy="380" r="17" fill="#9E321C" opacity=".5"/><circle cx="805" cy="262" r="12" fill="#9E321C" opacity=".5"/>
+  <circle cx="160" cy="1010" r="330" fill="url(#earth)"/>
+  <path d="M -20 760 q 90 -80 180 -30 q 60 40 120 -15 q 45 -30 75 30 q -60 110 -180 85 q -120 -15 -195 -70z" fill="#3FBF7F"/>
+  <g transform="translate(468 498) rotate(52) scale(10)">
+    <path d="M -6 14 Q 0 36 6 14 Z" fill="#FFB238"/><path d="M -3 14 Q 0 27 3 14 Z" fill="#FFF3B0"/>
+    <path d="M -7 4 L -13 15 L -6 13 Z" fill="#E2477F" stroke="#1D1B4F" stroke-width="1.2" stroke-linejoin="round"/>
+    <path d="M 7 4 L 13 15 L 6 13 Z" fill="#E2477F" stroke="#1D1B4F" stroke-width="1.2" stroke-linejoin="round"/>
+    <path d="M 0 -20 C 8 -12 8 2 7 14 L -7 14 C -8 2 -8 -12 0 -20 Z" fill="#FFF6E0" stroke="#1D1B4F" stroke-width="1.4"/>
+    <circle cx="0" cy="-5" r="3.6" fill="#5FD0F5" stroke="#1D1B4F" stroke-width="1.4"/>
+  </g>
+</svg>

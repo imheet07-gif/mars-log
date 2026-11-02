@@ -8,6 +8,10 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Mars Log">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#2B2A6B">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -475,10 +479,10 @@ const PHASES = [
       {id:"3b1l", title:"Essence of Linear Algebra", kind:"Playlist", url:"https://www.youtube.com/watch?v=fNk_zzaMoSs&list=PLZHQObOWTQDPD3MizzM2xVFitgF8hE_ab", meta:"3Blue1Brown. Opens on chapter 1 and plays through the series."},
       {id:"kac1", title:"Khan Academy: Calculus 1", kind:"Course", url:"https://www.khanacademy.org/math/calculus-1", meta:"Practice problems for derivatives and limits."},
       {id:"kac2", title:"Khan Academy: Calculus 2", kind:"Course", url:"https://www.khanacademy.org/math/calculus-2", meta:"Integration and series."},
-      {id:"kade", title:"Khan Academy: Differential equations", kind:"Course", url:"https://www.khanacademy.org/math/differential-equations", meta:"The language trajectories are written in."},
-      {id:"mit801", title:"MIT 8.01 Classical Mechanics", kind:"Course", url:"https://ocw.mit.edu/courses/8-01sc-classical-mechanics-fall-2016/", meta:"Newton, momentum, energy. The physics behind everything here."},
+      {id:"kade", title:"Khan Academy: Differential equations", kind:"Course", url:"https://www.youtube.com/watch?v=-_POEWfygmU&list=PL96AE8D9C68FEB902", extra:{ label:"Practice", url:"https://www.khanacademy.org/math/differential-equations" }, meta:"The language trajectories are written in. 45 short lessons play here; practise on Khan Academy."},
+      {id:"mit801", title:"MIT 8.01 Classical Mechanics", kind:"Course", url:"https://www.youtube.com/watch?v=F3N5EkMX_ks&list=PLUl4u3cNGP61qDex7XslwNJ-xxxEFzMNV", extra:{ label:"Course page", url:"https://ocw.mit.edu/courses/8-01sc-classical-mechanics-fall-2016/" }, meta:"Newton, momentum, energy. The physics behind everything here. 215 short videos play here; problem sets on the course page."},
       {id:"mit1600", title:"MIT 16.00 Intro to Aerospace Engineering", kind:"Course", url:"https://ocw.mit.edu/courses/16-00-introduction-to-aerospace-engineering-and-design-spring-2003/", meta:"The bridge from physics into aerospace."},
-      {id:"nptel", title:"NPTEL aerospace courses", kind:"Course", url:"https://nptel.ac.in/courses", meta:"Search “aerospace propulsion” and “flight mechanics”. Free, from IIT faculty."}
+      {id:"nptel", title:"NPTEL: Rocket Propulsion (IIT Madras)", kind:"Course", url:"https://www.youtube.com/watch?v=UkwnloqLT7Q&list=PLyqSpQzTE6M8G4TdzgmXkjvs4AZnlTVaH", extra:{ label:"More NPTEL", url:"https://nptel.ac.in/courses" }, meta:"Free IIT lectures. Starts from Newton’s laws and builds up to real rocket engines. Plays here."}
     ]},
   { id:"p3", name:"Transfer to Mars", intro:"Think like an engineer: real textbooks, real projects.",
     items:[
@@ -621,12 +625,16 @@ function openDesk(id, focus){
   meta.append(kind, document.createTextNode(f.item.meta || ""));
   const go = $("#deskGo"), yt = parseYT(f.item.url);
   current = yt;
-  if (yt){ go.hidden = true; $("#deskStamp").hidden = false; $("#deskYT").hidden = false; updateYTLink(); showVideo(yt); }
+  if (yt){
+    // lecture playlists keep a link to their course page (problem sets, practice) alongside the player
+    go.hidden = !f.item.extra; if (f.item.extra) go.href = f.item.extra.url;
+    $("#deskStamp").hidden = false; $("#deskYT").hidden = false; updateYTLink(); showVideo(yt);
+  }
   else {
     $("#deskStamp").hidden = true; $("#deskYT").hidden = true; pausePlayer();
     if (f.item.url){ go.hidden = false; go.href = f.item.url; } else go.hidden = true;
   }
-  go.textContent = f.item.reader ? "Original ↗" : "Open ↗";
+  go.textContent = f.item.reader ? "Original ↗" : yt && f.item.extra ? f.item.extra.label + " ↗" : "Open ↗";
   $("#reader").hidden = !f.item.reader;
   if (f.item.reader) openReader(id, f.item.reader); else rdItem = null;
   syncHandoffView();
@@ -772,19 +780,20 @@ function loadYT(){
   });
   return ytReady;
 }
+let playerKey = null;
 async function showVideo(yt){
   await loadYT();
   if (current !== yt) return;
-  if (!player){
-    const vars = { playsinline:1, rel:0 };
-    if (location.origin && location.origin.startsWith("http")) vars.origin = location.origin;
-    if (yt.list){ vars.listType = "playlist"; vars.list = yt.list; }
-    player = new YT.Player("player", { width:"100%", height:"100%", videoId: yt.v, playerVars: vars,
-      events: { onStateChange: e => { if (e.data === 1){ clearHandoff(); syncHandoffView(); } } } });
-  } else if (player.cueVideoById){
-    if (yt.list) player.cuePlaylist({ listType:"playlist", list: yt.list, index:0 });
-    else player.cueVideoById(yt.v);
-  }
+  const key = yt.v + "|" + (yt.list || "");
+  if (player && key === playerKey) return; // same video already loaded: a background sync mustn't interrupt playback
+  // a fresh player per item: cuePlaylist() on an existing player applies a new playlist one switch late
+  if (player){ try { player.destroy(); } catch(e){} player = null; $("#playerWrap").innerHTML = '<div id="player"></div>'; }
+  playerKey = key;
+  const vars = { playsinline:1, rel:0 };
+  if (location.origin && location.origin.startsWith("http")) vars.origin = location.origin;
+  if (yt.list){ vars.listType = "playlist"; vars.list = yt.list; }
+  player = new YT.Player("player", { width:"100%", height:"100%", videoId: yt.v, playerVars: vars,
+    events: { onStateChange: e => { if (e.data === 1){ clearHandoff(); syncHandoffView(); } } } });
 }
 function pausePlayer(){ try { if (player && player.pauseVideo) player.pauseVideo(); } catch(e){} }
 // Hand off to the YouTube app (where Premium applies) at the current video and time
